@@ -1,0 +1,245 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Playfair+Display:wght@400;500&display=swap');
+
+/* --- Variables --- */
+:root {
+  --bg-base:        #f8f1e4;
+  --bg-card:        #f3ede4;
+  --bg-input:       #faf7f2;
+
+  --accent:         #4a90d2;
+  --accent-hover:   #3a7fbe;
+  --accent-glow:    rgba(74, 144, 210, 0.07);
+  --accent-border:  rgba(74, 144, 210, 0.2);
+  --accent-ring:    rgba(74, 144, 210, 0.08);
+
+  --text-primary:   #13191f;
+  --text-muted:     #6b7580;
+  --text-faint:     #b0a898;
+  --border-subtle:  rgba(19, 25, 31, 0.12);
+  --border-focus:   rgba(74, 144, 210, 0.6);
+  --divider:        rgba(19, 25, 31, 0.08);
+}
+
+/* --- Reset & Base --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse at 20% 50%, var(--accent-glow) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(52, 211, 153, 0.04) 0%, transparent 50%);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Wrapper / Card --- */
+.wrapper {
+  background: var(--bg-card);
+  border: 0.5px solid var(--accent-border);
+  border-radius: 20px;
+  padding: 2.5rem 2.25rem;
+  width: 100%;
+  max-width: 400px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wrapper::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(74, 144, 210, 0.09) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* --- Header --- */
+.from-header {
+  margin-bottom: 2rem;
+}
+
+.titulo-login {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+/* --- Campos del formulario --- */
+.caja {
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.input-field {
+  width: 100%;
+  padding: 14px 44px 14px 16px;
+  background: var(--bg-input);
+  border: 0.5px solid var(--border-subtle);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 300;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-field::placeholder {
+  color: var(--text-faint);
+}
+
+.input-field:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+/* Label flotante */
+.label {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: all 0.2s ease;
+  background: transparent;
+}
+
+.input-field:focus ~ .label,
+.input-field:not(:placeholder-shown) ~ .label {
+  top: -9px;
+  left: 12px;
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--bg-card);
+  padding: 0 5px;
+}
+
+/* Iconos Boxicons dentro del campo */
+.caja > .bx {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 17px;
+  color: var(--accent);
+  opacity: 0.55;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.caja:focus-within > .bx {
+  opacity: 0.9;
+}
+
+/* --- Fila: recordar / contraseña --- */
+.form-cols {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin: -0.4rem 0 1.5rem;
+}
+
+.form-cols a {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 300;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+
+.form-cols a:hover {
+  opacity: 1;
+}
+
+/* --- Boton principal --- */
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  background: var(--accent);
+  color: #0a120e;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-submit:hover {
+  background: var(--accent-hover);
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+.btn-submit .bx {
+  font-size: 17px;
+}
+
+/* --- Divisor --- */
+.login-form hr,
+.divider {
+  height: 0.5px;
+  background: var(--divider);
+  border: none;
+  margin: 1.5rem 0;
+}
+
+/* --- Cambio de formulario --- */
+.switch-form {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.switch-form a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.switch-form a:hover {
+  opacity: 0.8;
+}
+
+/* --- Responsive --- */
+@media (max-width: 460px) {
+  .wrapper {
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+  }
+
+  .titulo-login {
+    font-size: 24px;
+  }
+}
