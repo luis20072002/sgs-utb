@@ -1,1 +1,19 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  --bg-base: #f4efe6;       /* fondo más claro */
+  --bg-card: #ffffff;       /* tarjeta blanca (clave) */
+  --bg-input: #f8f5f0;
+
+  --accent: #4a90d2;        /* tu azul original */
+  --accent-hover: #3a7fbe;
+  --accent-glow: rgba(74, 144, 210, 0.08);
+  --accent-border: rgba(74, 144, 210, 0.2);
+  --accent-ring: rgba(74, 144, 210, 0.12);
+
+  --text-primary: #1a1a1a;
+  --text-muted: #6b7280;
+  --text-faint: #a8a29e;
+
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(74, 144, 210, 0.5);
+  --divider: rgba(0, 0, 0, 0.06);
+}
