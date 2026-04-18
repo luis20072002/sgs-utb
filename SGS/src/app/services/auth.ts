@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 })
 export class AuthService {
 
-  private apiUrl = 'http://127.0.0.1:8000/token'; // endpoint OAuth2 estándar
+  private apiUrl = 'http://localhost:8000/auth/login'; // endpoint OAuth2 estándar
 
   constructor(private http: HttpClient) {}
 
@@ -20,6 +20,6 @@ export class AuthService {
       'Content-Type': 'application/x-www-form-urlencoded'
     });
 
-    return this.http.post<any>(this.apiUrl, body.toString(), { headers });
+    return this.http.post<any>(this.apiUrl, body.toString(), { headers,withCredentials: true  });
   }
 }
