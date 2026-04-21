@@ -12,7 +12,7 @@ export class AuthService {
 
   login(data: { email: string; password: string }) {
     const body = new HttpParams()
-      .set('username', data.email)   // OAuth2 usa "username", no "email"
+      .set('username', data.email)   // 
       .set('password', data.password)
       .set('grant_type', 'password'); // requerido en OAuth2
 
