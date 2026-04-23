@@ -1,0 +1,51 @@
+<aside class="sidebar">
+  <!-- Logo -->
+  <div class="sidebar__brand">
+    <span class="material-icons sidebar__brand-icon">school</span>
+    <span class="sidebar__brand-text">EduGestión <span class="sidebar__brand-version">v2.0</span></span>
+  </div>
+
+  <nav class="sidebar__nav">
+    <!-- Dashboard -->
+    <p class="sidebar__section-label">Dashboard</p>
+    <button
+      *ngFor="let item of dashboardItems"
+      class="sidebar__item"
+      [class.sidebar__item--active]="isActive(item.id)"
+      (click)="changeTab(item.id)"
+    >
+      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
+      <span>{{ item.label }}</span>
+    </button>
+
+    <!-- Gestión -->
+    <p class="sidebar__section-label">Gestión</p>
+    <button
+      *ngFor="let item of gestionItems"
+      class="sidebar__item"
+      [class.sidebar__item--active]="isActive(item.id)"
+      (click)="changeTab(item.id)"
+    >
+      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
+      <span>{{ item.label }}</span>
+    </button>
+
+    <!-- Informes -->
+    <p class="sidebar__section-label">Informes</p>
+    <button
+      *ngFor="let item of informesItems"
+      class="sidebar__item"
+      [class.sidebar__item--active]="isActive(item.id)"
+      (click)="changeTab(item.id)"
+    >
+      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
+      <span>{{ item.label }}</span>
+    </button>
+  </nav>
+
+  <!-- Status footer -->
+  <div class="sidebar__status">
+    <span class="sidebar__status-dot"></span>
+    <span class="sidebar__status-text">Status API</span>
+  </div>
+</aside>
