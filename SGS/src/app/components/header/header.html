@@ -1,0 +1,69 @@
+<header class="app-header">
+  <!-- Left: title + search -->
+  <div class="app-header__left">
+    <span class="app-header__panel-title">Panel de Control de Administrador</span>
+    <div class="app-header__search">
+      <span class="material-icons app-header__search-icon">search</span>
+      <input type="text" placeholder="Buscar..." class="app-header__search-input" />
+    </div>
+  </div>
+
+  <!-- Right: bell + profile -->
+  <div class="app-header__right">
+    <!-- Notifications -->
+    <button class="app-header__icon-btn">
+      <span class="material-icons">notifications</span>
+      <span class="app-header__badge"></span>
+    </button>
+
+    <!-- Profile dropdown -->
+    <div class="app-header__profile">
+      <button class="app-header__profile-btn" (click)="toggleProfile()">
+        <div class="app-header__profile-info">
+          <p class="app-header__profile-name">{{ user.name }}</p>
+          <p class="app-header__profile-email">{{ user.email }}</p>
+        </div>
+        <div class="app-header__avatar">
+          <img *ngIf="user.avatar; else initials" [src]="user.avatar" [alt]="user.name" />
+          <ng-template #initials>{{ userInitials }}</ng-template>
+        </div>
+      </button>
+
+      <!-- Dropdown -->
+      <div class="app-header__dropdown" [class.app-header__dropdown--open]="isProfileOpen">
+        <div class="app-header__dropdown-header" (click)="closeProfile()">
+          <p class="app-header__dropdown-name">{{ user.name }}</p>
+          <p class="app-header__dropdown-email">{{ user.email }}</p>
+        </div>
+        <div class="app-header__dropdown-body">
+          <button class="app-header__dropdown-item">
+            <span class="material-icons">person</span>
+            Mi Perfil
+          </button>
+          <button class="app-header__dropdown-item">
+            <span class="material-icons">settings</span>
+            Configuración
+          </button>
+        </div>
+        <div class="app-header__dropdown-footer">
+          <button class="app-header__dropdown-item app-header__dropdown-item--danger" (click)="onLogout()">
+            <span class="material-icons">logout</span>
+            Cerrar Sesión
+          </button>
+        </div>
+      </div>
+
+      <!-- Backdrop -->
+      <div
+        *ngIf="isProfileOpen"
+        class="app-header__backdrop"
+        (click)="closeProfile()"
+      ></div>
+    </div>
+
+    <!-- Quick logout button (lg+) -->
+    <button class="app-header__logout-btn" (click)="onLogout()">
+      Cerrar Sesión
+    </button>
+  </div>
+</header>

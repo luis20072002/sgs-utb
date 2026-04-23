@@ -37,7 +37,7 @@ login() {
     next: (res: any) => {
       localStorage.setItem('token', res.access_token); //  FastAPI retorna "access_token"
       console.log('Login exitoso');
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/panel']);
     },
     error: (err: any) => {
       console.error('Status:', err.status);
