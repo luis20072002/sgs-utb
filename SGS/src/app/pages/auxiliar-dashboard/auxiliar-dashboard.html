@@ -1,0 +1,245 @@
+<div class="auxiliar-shell">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════ -->
+  <header class="aux-header">
+    <div class="aux-header__inner">
+      <div class="aux-header__brand">
+        <div class="aux-header__icon">
+          <span class="material-icons">assignment_turned_in</span>
+        </div>
+        <div>
+          <h1 class="aux-header__title">Mi Planilla</h1>
+          <p class="aux-header__subtitle">Auxiliar: {{ user.name }}</p>
+        </div>
+      </div>
+      <button class="aux-header__logout" (click)="onLogout()">
+        <span class="material-icons">logout</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══ MAIN ════════════════════════════════════════════════════════ -->
+  <main class="aux-main">
+
+    <!-- ── Info Card ── -->
+    <div class="aux-info-card">
+      <div class="aux-info-card__top">
+        <div class="aux-info-card__location">
+          <span class="material-icons aux-info-card__loc-icon">location_on</span>
+          <div>
+            <p class="aux-info-card__label">Edificio Asignado</p>
+            <h2 class="aux-info-card__value">{{ planilla.edificio }}</h2>
+          </div>
+        </div>
+        <div class="aux-info-card__turn">
+          <p class="aux-info-card__label">Turno Actual</p>
+          <div class="aux-info-card__turn-row">
+            <span class="material-icons aux-info-card__turn-icon">schedule</span>
+            <span class="aux-info-card__turn-text">{{ planilla.turno }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Progress Bar -->
+      <div class="aux-progress">
+        <div class="aux-progress__header">
+          <span class="aux-progress__label">Estado del Recorrido</span>
+          <span class="aux-progress__count">{{ completedCount }} / {{ planilla.aulas.length }} Completadas</span>
+        </div>
+        <div class="aux-progress__track">
+          <div
+            class="aux-progress__fill"
+            [class.aux-progress__fill--complete]="progressPercent === 100"
+            [style.width.%]="progressPercent"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Checklist ── -->
+    <div class="aux-checklist">
+      <h3 class="aux-checklist__title">
+        Control de Aulas
+        <span class="aux-checklist__live-dot"></span>
+      </h3>
+
+      <button
+        *ngFor="let aula of planilla.aulas; let i = index"
+        class="aux-aula-item"
+        [class.aux-aula-item--done]="aula.completado"
+        [class.aux-aula-item--pending]="!aula.completado && !isStarted(aula.horaInicio)"
+        (click)="openEditor(aula)"
+      >
+        <!-- Badge "Programado" para clases no iniciadas -->
+        <span
+          *ngIf="!aula.completado && !isStarted(aula.horaInicio)"
+          class="aux-aula-item__badge"
+        >Programado</span>
+
+        <div class="aux-aula-item__left">
+          <div
+            class="aux-aula-item__icon-wrap"
+            [class.aux-aula-item__icon-wrap--done]="aula.completado"
+            [class.aux-aula-item__icon-wrap--pending]="!aula.completado && !isStarted(aula.horaInicio)"
+          >
+            <span class="material-icons">{{ aula.completado ? 'check_circle' : 'meeting_room' }}</span>
+          </div>
+
+          <div class="aux-aula-item__info">
+            <div class="aux-aula-item__name-row">
+              <h4 class="aux-aula-item__name" [class.aux-aula-item__name--done]="aula.completado">
+                {{ aula.aulaNombre }}
+              </h4>
+              <span class="aux-aula-item__codigo">{{ aula.codigoClase }}</span>
+            </div>
+            <p class="aux-aula-item__clase">{{ aula.nombreClase }}</p>
+            <p class="aux-aula-item__docente">Docente: {{ aula.docenteNombre }}</p>
+          </div>
+        </div>
+
+        <div class="aux-aula-item__right">
+          <span class="aux-aula-item__hora">{{ aula.horaInicio }}</span>
+          <ng-container *ngIf="!aula.completado && !isStarted(aula.horaInicio); else chevronTpl">
+            <span class="aux-aula-item__espera">Espera...</span>
+          </ng-container>
+          <ng-template #chevronTpl>
+            <span class="material-icons aux-aula-item__chevron" [class.aux-aula-item__chevron--done]="aula.completado">
+              chevron_right
+            </span>
+          </ng-template>
+        </div>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- ══ OVERLAY ══════════════════════════════════════════════════════ -->
+  <div
+    class="aux-overlay"
+    [class.aux-overlay--visible]="selectedAula !== null"
+    (click)="closeEditor()"
+  ></div>
+
+  <!-- ══ BOTTOM SHEET ══════════════════════════════════════════════════ -->
+  <div class="aux-sheet" [class.aux-sheet--open]="selectedAula !== null">
+    <div class="aux-sheet__handle"></div>
+
+    <ng-container *ngIf="selectedAula">
+
+      <!-- Sheet header -->
+      <div class="aux-sheet__header">
+        <div class="aux-sheet__header-icon">
+          <span class="material-icons">meeting_room</span>
+        </div>
+        <div>
+          <h2 class="aux-sheet__header-title">{{ selectedAula.aulaNombre }}</h2>
+          <div class="aux-sheet__header-meta">
+            <span class="aux-sheet__header-clase">{{ selectedAula.nombreClase }}</span>
+            <span class="aux-sheet__header-codigo">{{ selectedAula.codigoClase }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info mini-cards -->
+      <div class="aux-info-grid">
+        <div class="aux-info-mini">
+          <p class="aux-info-mini__label">Matrícula</p>
+          <div class="aux-info-mini__row">
+            <span class="material-icons aux-info-mini__icon">group</span>
+            <span class="aux-info-mini__value">{{ selectedAula.estudiantesMatriculados }} Alumnos</span>
+          </div>
+        </div>
+        <div class="aux-info-mini">
+          <p class="aux-info-mini__label">Horario</p>
+          <div class="aux-info-mini__row">
+            <span class="material-icons aux-info-mini__icon">schedule</span>
+            <span class="aux-info-mini__value">{{ selectedAula.horaInicio }} HS</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estado: clase no iniciada -->
+      <ng-container *ngIf="!isStarted(selectedAula.horaInicio) && !selectedAula.completado; else editorTpl">
+        <div class="aux-not-started">
+          <div class="aux-not-started__icon">
+            <span class="material-icons">schedule</span>
+          </div>
+          <h3 class="aux-not-started__title">Clase no iniciada</h3>
+          <p class="aux-not-started__text">
+            Esta clase está programada para las {{ selectedAula.horaInicio }}.<br/>
+            Por favor, espere al inicio para realizar la verificación.
+          </p>
+          <button class="aux-not-started__btn" (click)="closeEditor()">
+            Volver al listado
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- Editor -->
+      <ng-template #editorTpl>
+
+        <!-- Docente / Asistencia -->
+        <div class="aux-field-box">
+          <div class="aux-field-box__top">
+            <div>
+              <p class="aux-field-box__label">Docente Asignado</p>
+              <p class="aux-field-box__value">{{ editorData.docenteNombre }}</p>
+            </div>
+            <div class="aux-field-box__icon-wrap">
+              <span class="material-icons">group</span>
+            </div>
+          </div>
+          <button
+            class="aux-toggle"
+            [class.aux-toggle--present]="editorData.asistenciaDocente"
+            (click)="toggleAsistencia()"
+          >
+            <span class="aux-toggle__text">
+              {{ editorData.asistenciaDocente ? 'Presente' : 'Informar Ausencia' }}
+            </span>
+            <span *ngIf="editorData.asistenciaDocente" class="material-icons aux-toggle__check">check_circle</span>
+          </button>
+        </div>
+
+        <!-- Novedades -->
+        <div class="aux-field-group">
+          <label class="aux-field-label">Novedades y Reportes</label>
+          <div class="aux-input-wrap aux-input-wrap--textarea">
+            <span class="material-icons aux-input-wrap__icon aux-input-wrap__icon--top">chat</span>
+            <textarea
+              class="aux-textarea"
+              rows="4"
+              placeholder="Reportar inconvenientes, cambios de aula o detalles del dictado..."
+              [value]="editorData.novedades"
+              (input)="onNovedadesChange($event)"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="aux-sheet__actions">
+          <button class="aux-btn aux-btn--cancel" (click)="closeEditor()">Cancelar</button>
+          <button class="aux-btn aux-btn--save" (click)="saveEditor()">
+            <span class="material-icons">save</span>
+            Confirmar Visita
+          </button>
+        </div>
+
+        <div class="aux-sheet__hint">
+          <span class="material-icons">info</span>
+          <span>Información enviada al nodo central</span>
+        </div>
+
+      </ng-template>
+    </ng-container>
+  </div>
+
+  <!-- ══ FOOTER STATUS ════════════════════════════════════════════════ -->
+  <footer class="aux-footer">
+    <div class="aux-footer__pill">
+      <span class="aux-footer__dot"></span>
+      <span class="aux-footer__text">Recorrido en Vivo</span>
+    </div>
+  </footer>
+
+</div>
