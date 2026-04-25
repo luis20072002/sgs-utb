@@ -1,7 +1,8 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivityLog, Alert } from '../../../models/edu.models';
-
+import { ActivityLog } from '../../../models/edu.models';
+import { ReportService, Report } from '../../services/report';
+ 
 @Component({
   selector: 'app-activity-feed',
   standalone: true,
@@ -9,35 +10,39 @@ import { ActivityLog, Alert } from '../../../models/edu.models';
   templateUrl: 'activity-feed.html',
   styleUrls: ['activity-feed.css']
 })
-export class ActivityFeedComponent {
+export class ActivityFeedComponent implements OnChanges {
   @Input() logs: ActivityLog[] = [];
-  @Input() alerts: Alert[] = [];
-
+ 
+  audiovisualAlerts: Report[] = [];
+  selectedReport: Report | null = null;
+ 
+  constructor(private reportService: ReportService) {}
+ 
+  ngOnChanges(): void {
+    this.loadAlerts();
+  }
+ 
+  loadAlerts(): void {
+    const reports = this.reportService.getReports();
+    // Solo muestra reportes donde el proyector NO funciona
+    this.audiovisualAlerts = reports.filter(r => !r.proyectorFunciona);
+  }
+ 
+  selectAlert(r: Report): void {
+    this.selectedReport = this.selectedReport?.id === r.id ? null : r;
+  }
+ 
+  closeModal(): void {
+    this.selectedReport = null;
+  }
+ 
   getLogModuleLabel(type: string): string {
     const map: Record<string, string> = {
-      create: 'Cursos',
+      create: 'Reporte',
       assign: 'Turnos',
       update: 'Sistema',
       delete: 'Sistema'
     };
     return map[type] ?? 'Sistema';
-  }
-
-  getAlertClass(type: string): string {
-    const map: Record<string, string> = {
-      warning: 'alert-item--warning',
-      error:   'alert-item--error',
-      info:    'alert-item--info'
-    };
-    return map[type] ?? 'alert-item--info';
-  }
-
-  getAlertIcon(type: string): string {
-    const map: Record<string, string> = {
-      warning: '⚠️',
-      error:   '🔴',
-      info:    'ℹ️'
-    };
-    return map[type] ?? 'ℹ️';
   }
 }

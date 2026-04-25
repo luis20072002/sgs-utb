@@ -1,1 +1,117 @@
-<p>activity-feed works!</p>
+<div class="feed-grid">
+ 
+  <!-- Actividad reciente -->
+  <div class="feed-card">
+    <div class="feed-card__header">
+      <h4 class="feed-card__title">
+        <span class="material-icons">history</span> Actividad Reciente
+      </h4>
+    </div>
+    <div class="feed-list">
+      <div class="feed-item" *ngFor="let log of logs">
+        <div class="feed-item__dot" [ngClass]="'feed-item__dot--' + log.type"></div>
+        <div class="feed-item__body">
+          <p class="feed-item__text"><strong>{{ log.user }}</strong> {{ log.action }}</p>
+          <span class="feed-item__time">{{ log.timestamp }}</span>
+        </div>
+        <span class="feed-item__badge" [ngClass]="'feed-item__badge--' + log.type">{{ getLogModuleLabel(log.type) }}</span>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Alertas audiovisuales -->
+  <div class="feed-card">
+    <div class="feed-card__header">
+      <h4 class="feed-card__title">
+        <span class="material-icons">videocam_off</span> Problemas Audiovisuales
+        <span class="alert-count" *ngIf="audiovisualAlerts.length > 0">{{ audiovisualAlerts.length }}</span>
+      </h4>
+    </div>
+ 
+    <!-- Sin alertas -->
+    <div class="empty-alerts" *ngIf="audiovisualAlerts.length === 0">
+      <span class="material-icons">check_circle</span>
+      <p>Sin problemas reportados</p>
+    </div>
+ 
+    <!-- Lista de alertas -->
+    <div class="alert-list" *ngIf="audiovisualAlerts.length > 0">
+      <div
+        class="alert-item alert-item--warning"
+        *ngFor="let r of audiovisualAlerts"
+        [class.alert-item--selected]="selectedReport?.id === r.id"
+        (click)="selectAlert(r)"
+      >
+        <span class="alert-item__icon">⚠️</span>
+        <div class="alert-item__body">
+          <p class="alert-item__msg">
+            <strong>{{ r.aula }}</strong> — Proyector sin funcionar
+          </p>
+          <span class="alert-item__time">{{ r.auxiliarName }} · {{ r.fecha }} {{ r.hora }}</span>
+        </div>
+        <span class="alert-chevron material-icons">
+          {{ selectedReport?.id === r.id ? 'expand_less' : 'chevron_right' }}
+        </span>
+      </div>
+    </div>
+  </div>
+ 
+</div>
+ 
+<!-- Modal de detalles -->
+<div class="modal-overlay" *ngIf="selectedReport" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+ 
+    <div class="modal-header">
+      <div class="modal-header__info">
+        <span class="material-icons modal-header__icon">videocam_off</span>
+        <div>
+          <h3 class="modal-title">Problema Audiovisual</h3>
+          <span class="modal-subtitle">{{ selectedReport.aula }} — {{ selectedReport.materia }}</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+ 
+    <div class="modal-body">
+      <div class="modal-info-grid">
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Auxiliar</span>
+          <span class="modal-info-item__value">{{ selectedReport.auxiliarName }}</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Correo</span>
+          <span class="modal-info-item__value">{{ selectedReport.auxiliarEmail }}</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Fecha</span>
+          <span class="modal-info-item__value">{{ selectedReport.fecha }}</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Hora</span>
+          <span class="modal-info-item__value">{{ selectedReport.hora }}</span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Profesor asistió</span>
+          <span class="modal-info-item__value badge-inline"
+            [class.badge-inline--yes]="selectedReport.profesorAsistio"
+            [class.badge-inline--no]="!selectedReport.profesorAsistio">
+            {{ selectedReport.profesorAsistio ? 'Sí' : 'No' }}
+          </span>
+        </div>
+        <div class="modal-info-item">
+          <span class="modal-info-item__label">Proyector</span>
+          <span class="modal-info-item__value badge-inline badge-inline--no">No funciona</span>
+        </div>
+      </div>
+ 
+      <div class="modal-observaciones">
+        <span class="modal-info-item__label">Observaciones del auxiliar</span>
+        <p class="modal-observaciones__text">{{ selectedReport.observaciones }}</p>
+      </div>
+    </div>
+ 
+  </div>
+</div>

@@ -1,7 +1,7 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { KPIStats } from '../../../models/edu.models';
-
+ 
 interface KPICard {
   label: string;
   value: number;
@@ -9,13 +9,7 @@ interface KPICard {
   colorClass: string;
   trend: string;
 }
-
-interface QuickAccessItem {
-  label: string;
-  emoji: string;
-  tab: string;
-}
-
+ 
 @Component({
   selector: 'app-kpi-cards',
   standalone: true,
@@ -24,41 +18,44 @@ interface QuickAccessItem {
   styleUrls: ['kpi-cards.css']
 })
 export class KpiCardsComponent {
+  @Output() cardClick = new EventEmitter<void>();
+ 
   @Input() set stats(value: KPIStats) {
     this.cards = [
-      { label: 'Usuarios',  value: value.totalUsers,      icon: 'group',        colorClass: 'kpi-card--indigo',  trend: '+12%' },
-      { label: 'Docentes',  value: value.totalTeachers,   icon: 'person_pin',   colorClass: 'kpi-card--emerald', trend: '+2%' },
-      { label: 'Cursos',    value: value.totalCourses,     icon: 'menu_book',    colorClass: 'kpi-card--blue',    trend: '+5%' },
-      { label: 'Aulas',     value: value.totalClassrooms,  icon: 'school',       colorClass: 'kpi-card--amber',   trend: '0%' },
-      { label: 'Turnos',    value: value.totalShifts,      icon: 'schedule',     colorClass: 'kpi-card--rose',    trend: '-1%' },
-      { label: 'Planillas', value: value.totalTemplates,   icon: 'description',  colorClass: 'kpi-card--violet',  trend: '+8%' },
+      {
+        label:      'Usuarios registrados',
+        value:      value.totalUsers,
+        icon:       'group',
+        colorClass: 'kpi-card--indigo',
+        trend:      `${value.totalAuxiliares} aux · ${value.totalDocentes} doc`
+      },
+      {
+        label:      'Auxiliares',
+        value:      value.totalAuxiliares,
+        icon:       'support_agent',
+        colorClass: 'kpi-card--blue',
+        trend:      `de ${value.totalUsers} usuarios`
+      },
+      {
+        label:      'Reportes enviados',
+        value:      value.totalReports,
+        icon:       'assessment',
+        colorClass: 'kpi-card--violet',
+        trend:      value.totalReports === 0 ? 'Sin reportes aún' : `${value.totalProfesoresNoAsistieron} prof. no asistieron`
+      },
+      {
+        label:      'Proyectores con falla',
+        value:      value.totalProyectoresFallando,
+        icon:       'videocam_off',
+        colorClass: value.totalProyectoresFallando > 0 ? 'kpi-card--red' : 'kpi-card--emerald',
+        trend:      value.totalProyectoresFallando > 0
+                      ? `de ${value.totalReports} reportes`
+                      : 'Sin problemas reportados'
+      },
     ];
   }
-
+ 
   cards: KPICard[] = [];
-
-  quickAccessItems: QuickAccessItem[] = [
-    { label: 'Usuarios',  emoji: '👥', tab: 'users' },
-    { label: 'Cursos',    emoji: '📚', tab: 'courses' },
-    { label: 'Aulas',     emoji: '🏫', tab: 'classrooms' },
-    { label: 'Docentes',  emoji: '🍎', tab: 'teachers' },
-    { label: 'Turnos',    emoji: '🕙', tab: 'shifts' },
-    { label: 'Planillas', emoji: '📑', tab: 'templates' },
-  ];
-
-  isTrendPositive(trend: string): boolean {
-    return trend.startsWith('+');
-  }
-
-  isTrendNeutral(trend: string): boolean {
-    return trend === '0%';
-  }
-
-  isTrendNegative(trend: string): boolean {
-    return trend.startsWith('-');
-  }
-
-  trendLabel(trend: string): string {
-    return trend.startsWith('+') ? `${trend} esta semana` : trend;
-  }
+ 
+  onCardClick() { this.cardClick.emit(); }
 }

@@ -1,45 +1,128 @@
 <div class="container-login">
 
-    <div class="wrapper">
-        <div class="from-header">
-            <div class="titulo">
-                <div class="titulo-login">Bienvenido a <span>SGS</span></div>
-                <p class="sub-titulo">Accede a tu cuenta</p>
-            </div>
-        </div>
+  <!-- ===== CARD LOGIN ===== -->
+  <div class="wrapper" [class.wrapper--hidden]="showChangePassword()">
+    <div class="from-header">
+      <div class="titulo">
+        <div class="titulo-login">Bienvenido a <span>SGS</span></div>
+        <p class="sub-titulo">Accede a tu cuenta</p>
+      </div>
+    </div>
 
-       <form [formGroup]="form" (ngSubmit)="login()" class="login-form" autocomplete="off">
+    <form [formGroup]="form" (ngSubmit)="login()" class="login-form" autocomplete="off">
 
-    <div class="caja">
-        <input type="text" class="input-field" id="log-email" formControlName="email">
+      <!-- Email -->
+      <div class="caja" [class.caja--error]="hasError('email')">
+        <input type="text" class="input-field" id="log-email" formControlName="email" autocomplete="off">
         <label for="log-email" class="label">Correo</label>
         <i class='bx bxl-gmail'></i>
-    </div>
+        <span class="field-error" *ngIf="hasError('email')">Ingresa un correo válido</span>
+      </div>
 
-    <div class="caja">
-        <input type="password" class="input-field" id="log-pass" formControlName="password">
+      <!-- Password -->
+      <div class="caja" [class.caja--error]="hasError('password')">
+        <input [type]="showPassword() ? 'text' : 'password'"
+               class="input-field input-field--padright"
+               id="log-pass"
+               formControlName="password"
+               autocomplete="current-password">
         <label for="log-pass" class="label">Contraseña</label>
-        <i class='bx bx-key'></i>
-    </div>
+        <button type="button" class="btn-eye" (click)="togglePassword()" tabindex="-1">
+          <i class='bx' [class.bx-show]="!showPassword()" [class.bx-hide]="showPassword()"></i>
+        </button>
+        <span class="field-error" *ngIf="hasError('password')">La contraseña es requerida</span>
+      </div>
 
-    <div class="form-cols">
+      <!-- Links -->
+      <div class="form-cols">
         <div class="col-1"></div>
         <div class="col-2">
-            <a href="#">¿Olvidó la contraseña?</a>
+          <button type="button" class="link-btn" (click)="openChangePassword()">¿Cambiar contraseña?</button>
         </div>
+      </div>
+
+      <!-- Error global -->
+      <div class="alert-error" *ngIf="errorMsg()">
+        <i class='bx bx-error-circle'></i> {{ errorMsg() }}
+      </div>
+
+      <!-- Submit -->
+      <div class="caja">
+        <button type="submit" class="btn-submit" [disabled]="isLoading()">
+          <span class="spinner" *ngIf="isLoading()"></span>
+          <span *ngIf="!isLoading()">Iniciar sesión</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ===== CARD CAMBIO DE CONTRASEÑA ===== -->
+  <div class="wrapper" *ngIf="showChangePassword()">
+    <div class="from-header">
+      <div class="titulo">
+        <div class="titulo-login">Cambiar <span>Contraseña</span></div>
+        <p class="sub-titulo">Ingresa tu contraseña actual y la nueva</p>
+      </div>
     </div>
 
-    <div class="caja">
-        <button type="button" (click)="login()" class="btn-submit">
-    Iniciar sesión
-</button>
-    </div>
+    <form [formGroup]="changePassForm" (ngSubmit)="submitChangePassword()" class="login-form" autocomplete="off">
 
-    <div class="switch-form">
-        <span>¿No tienes una cuenta? <a href="#">Registrate</a></span>
-    </div>
+      <!-- Contraseña actual -->
+      <div class="caja" [class.caja--error]="hasChangeError('current_password')">
+        <input [type]="showCurrentPassword() ? 'text' : 'password'"
+               class="input-field input-field--padright"
+               id="cp-current"
+               formControlName="current_password">
+        <label for="cp-current" class="label">Contraseña actual</label>
+        <button type="button" class="btn-eye" (click)="toggleCurrentPassword()" tabindex="-1">
+          <i class='bx' [class.bx-show]="!showCurrentPassword()" [class.bx-hide]="showCurrentPassword()"></i>
+        </button>
+        <span class="field-error" *ngIf="hasChangeError('current_password')">Campo requerido</span>
+      </div>
 
-</form>
-    </div>
+      <!-- Nueva contraseña -->
+      <div class="caja" [class.caja--error]="hasChangeError('new_password')">
+        <input [type]="showNewPassword() ? 'text' : 'password'"
+               class="input-field input-field--padright"
+               id="cp-new"
+               formControlName="new_password">
+        <label for="cp-new" class="label">Nueva contraseña</label>
+        <button type="button" class="btn-eye" (click)="toggleNewPassword()" tabindex="-1">
+          <i class='bx' [class.bx-show]="!showNewPassword()" [class.bx-hide]="showNewPassword()"></i>
+        </button>
+        <span class="field-error" *ngIf="hasChangeError('new_password')">Mínimo 6 caracteres</span>
+      </div>
+
+      <!-- Confirmar nueva contraseña -->
+      <div class="caja" [class.caja--error]="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
+        <input [type]="showConfirmPassword() ? 'text' : 'password'"
+               class="input-field input-field--padright"
+               id="cp-confirm"
+               formControlName="confirm_password">
+        <label for="cp-confirm" class="label">Confirmar contraseña</label>
+        <button type="button" class="btn-eye" (click)="toggleConfirmPassword()" tabindex="-1">
+          <i class='bx' [class.bx-show]="!showConfirmPassword()" [class.bx-hide]="showConfirmPassword()"></i>
+        </button>
+        <span class="field-error" *ngIf="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
+          Las contraseñas no coinciden
+        </span>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="alert-error" *ngIf="errorMsg()"><i class='bx bx-error-circle'></i> {{ errorMsg() }}</div>
+      <div class="alert-success" *ngIf="successMsg()"><i class='bx bx-check-circle'></i> {{ successMsg() }}</div>
+
+      <!-- Acciones -->
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" (click)="closeChangePassword()">Cancelar</button>
+        <button type="submit" class="btn-submit btn-submit--flex" [disabled]="isLoading()">
+          <span class="spinner" *ngIf="isLoading()"></span>
+          <span *ngIf="!isLoading()">Guardar</span>
+        </button>
+      </div>
+
+    </form>
+  </div>
 
 </div>

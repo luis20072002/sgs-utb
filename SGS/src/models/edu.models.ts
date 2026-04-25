@@ -1,18 +1,21 @@
+// src/models/edu.models.ts
+export type UserRole = 'administrador' | 'auxiliar';
+ 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'administrador' | 'usuario';
+  role: UserRole;
   avatar?: string;
 }
  
 export interface KPIStats {
   totalUsers: number;
-  totalTeachers: number;
-  totalCourses: number;
-  totalClassrooms: number;
-  totalShifts: number;
-  totalTemplates: number;
+  totalDocentes: number;
+  totalAuxiliares: number;
+  totalReports: number;
+  totalProyectoresFallando: number;
+  totalProfesoresNoAsistieron: number;
 }
  
 export interface ActivityLog {
@@ -32,6 +35,13 @@ export interface Alert {
  
 export interface MenuItem {
   id: string;
-  icon: string;   // nombre de icono (Material Icons o SVG inline)
+  icon: string;
   label: string;
-  path: string;}
+  path: string;
+}
+ 
+export interface ChartData {
+  label: string;
+  value: number;
+  color: string;
+}
