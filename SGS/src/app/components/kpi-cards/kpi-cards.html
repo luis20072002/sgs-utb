@@ -1,32 +1,18 @@
-<!-- KPI Grid -->
 <div class="kpi-grid">
   <div
     *ngFor="let card of cards"
     class="kpi-card"
     [ngClass]="card.colorClass"
+    (click)="onCardClick()"
+    title="Ver gráficos detallados"
   >
+    <div class="kpi-card__top">
+      <span class="material-icons kpi-card__icon">{{ card.icon }}</span>
+      <span class="kpi-card__chart-hint material-icons">bar_chart</span>
+    </div>
     <p class="kpi-card__label">{{ card.label }}</p>
-    <h3 class="kpi-card__value">{{ card.value | number }}</h3>
-    <p
-      class="kpi-card__trend"
-      [class.kpi-card__trend--positive]="isTrendPositive(card.trend)"
-      [class.kpi-card__trend--neutral]="isTrendNeutral(card.trend)"
-      [class.kpi-card__trend--negative]="isTrendNegative(card.trend)"
-    >
-      {{ trendLabel(card.trend) }}
-    </p>
+    <h3 class="kpi-card__value">{{ card.value }}</h3>
+    <p class="kpi-card__trend">{{ card.trend }}</p>
   </div>
 </div>
-
-<!-- Quick Access -->
-<div class="quick-access">
-  <div class="quick-access__grid">
-    <button
-      *ngFor="let item of quickAccessItems"
-      class="quick-access__btn"
-    >
-      <span class="quick-access__emoji">{{ item.emoji }}</span>
-      <span>{{ item.label }}</span>
-    </button>
-  </div>
-</div>
+ 

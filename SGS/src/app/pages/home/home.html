@@ -1,0 +1,141 @@
+<div class="home-layout">
+
+  <!-- Header -->
+  <header class="home-header">
+    <div class="home-header__brand">
+      <span class="material-icons">school</span>
+      <span>SGS <span class="home-header__role">Auxiliar</span></span>
+    </div>
+    <button class="btn-logout" (click)="logout()">
+      <span class="material-icons">logout</span> Cerrar sesión
+    </button>
+  </header>
+
+  <!-- Main -->
+  <main class="home-main">
+
+    <div class="home-welcome">
+      <h1 class="home-welcome__title">Generar Reporte de Aula</h1>
+      <p class="home-welcome__sub">Completa el formulario. El reporte se descargará como PDF y quedará registrado en el sistema.</p>
+    </div>
+
+    <!-- Success -->
+    <div class="alert-success" *ngIf="successMsg()">
+      <span class="material-icons">check_circle</span>
+      {{ successMsg() }}
+    </div>
+
+    <!-- Formulario -->
+    <div class="report-card">
+      <form [formGroup]="form" (ngSubmit)="submitReport()" autocomplete="off">
+
+        <!-- Datos del auxiliar -->
+        <div class="form-section">
+          <h3 class="form-section__title">
+            <span class="material-icons">person</span> Datos del Auxiliar
+          </h3>
+          <div class="form-row">
+            <div class="form-group" [class.form-group--error]="hasError('auxiliarName')">
+              <label>Nombre del auxiliar</label>
+              <input type="text" formControlName="auxiliarName" placeholder="Ej: Juan Pérez">
+              <span class="error-msg" *ngIf="hasError('auxiliarName')">Campo requerido</span>
+            </div>
+            <div class="form-group" [class.form-group--error]="hasError('auxiliarEmail')">
+              <label>Correo</label>
+              <input type="text" formControlName="auxiliarEmail" placeholder="correo@sgs.com">
+              <span class="error-msg" *ngIf="hasError('auxiliarEmail')">Campo requerido</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Datos del aula -->
+        <div class="form-section">
+          <h3 class="form-section__title">
+            <span class="material-icons">meeting_room</span> Datos del Aula
+          </h3>
+          <div class="form-row">
+            <div class="form-group" [class.form-group--error]="hasError('aula')">
+              <label>Aula</label>
+              <input type="text" formControlName="aula" placeholder="Ej: Aula 302">
+              <span class="error-msg" *ngIf="hasError('aula')">Campo requerido</span>
+            </div>
+            <div class="form-group" [class.form-group--error]="hasError('materia')">
+              <label>Materia</label>
+              <input type="text" formControlName="materia" placeholder="Ej: Cálculo I">
+              <span class="error-msg" *ngIf="hasError('materia')">Campo requerido</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Checklist -->
+        <div class="form-section">
+          <h3 class="form-section__title">
+            <span class="material-icons">checklist</span> Checklist
+          </h3>
+
+          <div class="check-group" [class.check-group--error]="hasError('profesorAsistio')">
+            <label class="check-label">¿El profesor asistió a clase?</label>
+            <div class="check-options">
+              <label class="check-option">
+                <input type="radio" formControlName="profesorAsistio" value="true">
+                <span class="check-option__box check-option__box--yes">
+                  <span class="material-icons">check_circle</span> Sí
+                </span>
+              </label>
+              <label class="check-option">
+                <input type="radio" formControlName="profesorAsistio" value="false">
+                <span class="check-option__box check-option__box--no">
+                  <span class="material-icons">cancel</span> No
+                </span>
+              </label>
+            </div>
+            <span class="error-msg" *ngIf="hasError('profesorAsistio')">Selecciona una opción</span>
+          </div>
+
+          <div class="check-group" [class.check-group--error]="hasError('proyectorFunciona')">
+            <label class="check-label">¿El proyector de video funciona?</label>
+            <div class="check-options">
+              <label class="check-option">
+                <input type="radio" formControlName="proyectorFunciona" value="true">
+                <span class="check-option__box check-option__box--yes">
+                  <span class="material-icons">check_circle</span> Sí
+                </span>
+              </label>
+              <label class="check-option">
+                <input type="radio" formControlName="proyectorFunciona" value="false">
+                <span class="check-option__box check-option__box--no">
+                  <span class="material-icons">cancel</span> No
+                </span>
+              </label>
+            </div>
+            <span class="error-msg" *ngIf="hasError('proyectorFunciona')">Selecciona una opción</span>
+          </div>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="form-section">
+          <h3 class="form-section__title">
+            <span class="material-icons">notes</span> Observaciones adicionales
+          </h3>
+          <div class="form-group">
+            <textarea formControlName="observaciones" rows="4"
+              placeholder="Escribe cualquier observación adicional sobre el aula, el profesor, equipos, etc."></textarea>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-footer">
+          <button type="submit" class="btn-submit" [disabled]="isLoading()">
+            <span class="spinner" *ngIf="isLoading()"></span>
+            <ng-container *ngIf="!isLoading()">
+              <span class="material-icons">picture_as_pdf</span>
+              Generar y enviar reporte
+            </ng-container>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </main>
+</div>
