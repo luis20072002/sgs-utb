@@ -16,14 +16,14 @@ export class Login {
   form: FormGroup;
   changePassForm: FormGroup;
 
-  showPassword = signal(false);
+  showPassword        = signal(false);
   showCurrentPassword = signal(false);
-  showNewPassword = signal(false);
+  showNewPassword     = signal(false);
   showConfirmPassword = signal(false);
 
-  isLoading = signal(false);
-  errorMsg = signal('');
-  successMsg = signal('');
+  isLoading          = signal(false);
+  errorMsg           = signal('');
+  successMsg         = signal('');
   showChangePassword = signal(false);
 
   constructor(
@@ -32,13 +32,13 @@ export class Login {
     private router: Router
   ) {
     this.form = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email:    ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]
     });
 
     this.changePassForm = this.fb.group({
       current_password: ['', Validators.required],
-      new_password: ['', [Validators.required, Validators.minLength(6)]],
+      new_password:     ['', [Validators.required, Validators.minLength(6)]],
       confirm_password: ['', Validators.required]
     }, { validators: this.passwordsMatch });
   }
@@ -49,20 +49,18 @@ export class Login {
     return np === cp ? null : { mismatch: true };
   }
 
-  togglePassword() { this.showPassword.update(v => !v); }
+  togglePassword()        { this.showPassword.update(v => !v); }
   toggleCurrentPassword() { this.showCurrentPassword.update(v => !v); }
-  toggleNewPassword() { this.showNewPassword.update(v => !v); }
+  toggleNewPassword()     { this.showNewPassword.update(v => !v); }
   toggleConfirmPassword() { this.showConfirmPassword.update(v => !v); }
 
   login() {
     this.errorMsg.set('');
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+
     this.isLoading.set(true);
     this.auth.login(this.form.value).subscribe({
-      next: (res: any) => {
+      next: () => {
         this.isLoading.set(false);
         const role = this.auth.getRole();
         if (role === 'administrador') {
@@ -73,7 +71,13 @@ export class Login {
       },
       error: (err: any) => {
         this.isLoading.set(false);
-        this.errorMsg.set(err.status === 401 ? 'Credenciales incorrectas.' : 'Error al conectar. Intente de nuevo.');
+        if (err.status === 401) {
+          this.errorMsg.set('Credenciales incorrectas.');
+        } else if (err.status === 403) {
+          this.errorMsg.set('Usuario inactivo. Contacta al administrador.');
+        } else {
+          this.errorMsg.set('Error al conectar con el servidor. Verifica que el backend esté activo.');
+        }
       }
     });
   }
@@ -81,10 +85,8 @@ export class Login {
   submitChangePassword() {
     this.errorMsg.set('');
     this.successMsg.set('');
-    if (this.changePassForm.invalid) {
-      this.changePassForm.markAllAsTouched();
-      return;
-    }
+    if (this.changePassForm.invalid) { this.changePassForm.markAllAsTouched(); return; }
+
     const { current_password, new_password } = this.changePassForm.value;
     this.isLoading.set(true);
     this.auth.changePassword({ current_password, new_password }).subscribe({

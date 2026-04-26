@@ -1,4 +1,4 @@
-import { Component, signal, Output, EventEmitter } from '@angular/core';
+import { Component, OnInit, signal, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormsModule, ReactiveFormsModule, FormBuilder, FormGroup,
@@ -6,33 +6,32 @@ import {
 } from '@angular/forms';
 import { UserService } from '../../../services/user.service';
 import { DocenteRow } from '../teachers/teachers';
- 
+
 interface UserRow {
-  id: string;
+  id: number;
   name: string;
   email: string;
   role: string;
+  roleId: number;
   status: 'activo' | 'inactivo';
 }
- 
-// Validador: mínimo 8 caracteres, una mayúscula, un número
+
 function passwordStrength(control: AbstractControl): ValidationErrors | null {
   const v: string = control.value || '';
   if (!v) return null;
-  if (v.length < 8)            return { tooShort: true };
-  if (!/[A-Z]/.test(v))        return { noUppercase: true };
-  if (!/[0-9]/.test(v))        return { noNumber: true };
+  if (v.length < 8)       return { tooShort: true };
+  if (!/[A-Z]/.test(v))   return { noUppercase: true };
+  if (!/[0-9]/.test(v))   return { noNumber: true };
   return null;
 }
- 
-// Validador: solo dígitos y longitud razonable para teléfono
+
 function phoneValidator(control: AbstractControl): ValidationErrors | null {
   const v: string = control.value || '';
   if (!v) return null;
   if (!/^\+?[\d\s\-]{7,15}$/.test(v)) return { invalidPhone: true };
   return null;
 }
- 
+
 @Component({
   selector: 'app-users',
   standalone: true,
@@ -40,27 +39,22 @@ function phoneValidator(control: AbstractControl): ValidationErrors | null {
   templateUrl: './users.html',
   styleUrls: ['./users.css']
 })
-export class UsersComponent {
-  users: UserRow[] = [
-    { id: '1', name: 'Ana Martínez',   email: 'ana@sgs.com',     role: 'administrador', status: 'activo'   },
-    { id: '2', name: 'Juan Pérez',     email: 'juan@sgs.com',    role: 'auxiliar',      status: 'activo'   },
-    { id: '3', name: 'Roberto Gómez',  email: 'roberto@sgs.com', role: 'auxiliar',      status: 'inactivo' },
-    { id: '4', name: 'María López',    email: 'maria@sgs.com',   role: 'docente',       status: 'activo'   },
-    { id: '5', name: 'Carlos Herrera', email: 'carlos@sgs.com',  role: 'docente',       status: 'activo'   },
-  ];
- 
-  /** Emite al AdminPanel cuando un docente nuevo es creado exitosamente */
+export class UsersComponent implements OnInit {
+  users: UserRow[] = [];
+  isLoadingUsers = signal(false);
+  loadError = signal('');
+
   @Output() docenteCreado = new EventEmitter<DocenteRow>();
- 
-  // ── Modal: inhabilitar / habilitar ────────────────────────
+
+  // Modal: inhabilitar / habilitar
   showModal     = signal(false);
   password      = signal('');
   passwordError = signal('');
   showPassword  = signal(false);
   userToToggle  = signal<UserRow | null>(null);
-  private readonly ADMIN_PASSWORD = '123';
- 
-  // ── Modal: crear auxiliar ─────────────────────────────────
+  isToggling    = signal(false);
+
+  // Modal: crear auxiliar
   showCreateModal = signal(false);
   isCreating      = signal(false);
   createSuccess   = signal(false);
@@ -68,46 +62,70 @@ export class UsersComponent {
   showNewPassword = signal(false);
   showConfirmPass = signal(false);
   createForm: FormGroup;
- 
-  // ── Modal: agregar docente ────────────────────────────────
+
+  // Modal: agregar docente
   showDocenteModal  = signal(false);
   isCreatingDocente = signal(false);
   docenteSuccess    = signal(false);
   docenteError      = signal('');
   docenteForm: FormGroup;
- 
+
   constructor(private fb: FormBuilder, private userService: UserService) {
     this.createForm = this.fb.group(
       {
-        name:            ['', [Validators.required, Validators.minLength(3)]],
-        email:           ['', [Validators.required, Validators.email]],
+        nombre:          ['', [Validators.required, Validators.minLength(3)]],
+        correo:          ['', [Validators.required, Validators.email]],
         password:        ['', [Validators.required, passwordStrength]],
         confirmPassword: ['', Validators.required],
       },
       { validators: this.matchPasswords }
     );
- 
+
     this.docenteForm = this.fb.group({
-      id_docente: ['', [Validators.required, Validators.minLength(3)]],
-      nombre:     ['', [Validators.required, Validators.minLength(2)]],
-      apellido:   ['', [Validators.required, Validators.minLength(2)]],
-      email:      ['', [Validators.required, Validators.email]],
-      telefono:   ['', [Validators.required, phoneValidator]],
+      nombre:   ['', [Validators.required, Validators.minLength(2)]],
+      apellido: ['', [Validators.required, Validators.minLength(2)]],
+      correo:   ['', [Validators.required, Validators.email]],
+      telefono: ['', [Validators.required, phoneValidator]],
     });
   }
- 
+
+  ngOnInit(): void {
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.isLoadingUsers.set(true);
+    this.loadError.set('');
+    this.userService.getUsuarios().subscribe({
+      next: (data: any[]) => {
+        this.users = data.map(u => ({
+          id:     u.id_usuario,
+          name:   u.nombre,
+          email:  u.correo || '',
+          role:   u.rol?.nombre_rol?.toLowerCase() || 'usuario',
+          roleId: u.rol?.rol_id || 0,
+          status: u.estado ? 'activo' : 'inactivo'
+        }));
+        this.isLoadingUsers.set(false);
+      },
+      error: () => {
+        this.loadError.set('No se pudieron cargar los usuarios.');
+        this.isLoadingUsers.set(false);
+      }
+    });
+  }
+
   private matchPasswords(group: AbstractControl): ValidationErrors | null {
     const p  = group.get('password')?.value;
     const cp = group.get('confirmPassword')?.value;
     return p && cp && p !== cp ? { mismatch: true } : null;
   }
- 
-  // ── Helpers formulario auxiliar ───────────────────────────
+
   fieldError(field: string): boolean {
     const c = this.createForm.get(field);
     return !!(c && c.invalid && c.touched);
   }
- 
+
   passwordHint(): string {
     const err = this.createForm.get('password')?.errors;
     if (!err) return '';
@@ -116,7 +134,7 @@ export class UsersComponent {
     if (err['noNumber'])    return 'Debe incluir al menos un número';
     return '';
   }
- 
+
   passwordStrengthLevel(): 'weak' | 'medium' | 'strong' | '' {
     const v: string = this.createForm.get('password')?.value || '';
     if (!v) return '';
@@ -130,8 +148,7 @@ export class UsersComponent {
     if (score === 3) return 'medium';
     return 'strong';
   }
- 
-  // ── Apertura / cierre modal crear auxiliar ────────────────
+
   openCreateModal(): void {
     this.createForm.reset();
     this.createError.set('');
@@ -140,12 +157,12 @@ export class UsersComponent {
     this.showConfirmPass.set(false);
     this.showCreateModal.set(true);
   }
- 
+
   closeCreateModal(): void {
     if (this.isCreating()) return;
     this.showCreateModal.set(false);
   }
- 
+
   submitCreate(): void {
     if (this.createForm.invalid) {
       this.createForm.markAllAsTouched();
@@ -153,16 +170,23 @@ export class UsersComponent {
     }
     this.isCreating.set(true);
     this.createError.set('');
-    const { name, email, password } = this.createForm.value;
- 
-    this.userService.createUser({ name, email, password, role: 'auxiliar' }).subscribe({
+    const { nombre, correo, password } = this.createForm.value;
+
+    this.userService.createAuxiliar({
+      nombre,
+      correo,
+      pwsd: password,
+      estado: true,
+      rol_id: 2
+    }).subscribe({
       next: (res: any) => {
         const newUser: UserRow = {
-          id:     res?.id    ?? String(Date.now()),
-          name:   res?.name  ?? name,
-          email:  res?.email ?? email,
+          id:     res.id_usuario,
+          name:   res.nombre,
+          email:  res.correo || correo,
           role:   'auxiliar',
-          status: 'activo',
+          roleId: 2,
+          status: 'activo'
         };
         this.users = [...this.users, newUser];
         this.isCreating.set(false);
@@ -175,29 +199,28 @@ export class UsersComponent {
       error: (err: any) => {
         this.isCreating.set(false);
         const msg = err?.error?.detail || err?.error?.message;
-        this.createError.set(msg || 'No se pudo crear el auxiliar. Intenta de nuevo.');
+        this.createError.set(msg || 'No se pudo crear el auxiliar.');
       }
     });
   }
- 
-  // ── Apertura / cierre modal docente ──────────────────────
+
   openDocenteModal(): void {
     this.docenteForm.reset();
     this.docenteError.set('');
     this.docenteSuccess.set(false);
     this.showDocenteModal.set(true);
   }
- 
+
   closeDocenteModal(): void {
     if (this.isCreatingDocente()) return;
     this.showDocenteModal.set(false);
   }
- 
+
   docenteFieldError(field: string): boolean {
     const c = this.docenteForm.get(field);
     return !!(c && c.invalid && c.touched);
   }
- 
+
   submitDocente(): void {
     if (this.docenteForm.invalid) {
       this.docenteForm.markAllAsTouched();
@@ -205,30 +228,19 @@ export class UsersComponent {
     }
     this.isCreatingDocente.set(true);
     this.docenteError.set('');
-    const { id_docente, nombre, apellido, email, telefono } = this.docenteForm.value;
- 
-    this.userService.createDocente({ id_docente, nombre, apellido, email, telefono }).subscribe({
+    const { nombre, apellido, correo, telefono } = this.docenteForm.value;
+
+    this.userService.createDocente({ nombre, apellido, correo, telefono }).subscribe({
       next: (res: any) => {
-        const newUser: UserRow = {
-          id:     res?.id_docente ?? id_docente,
-          name:   `${res?.nombre ?? nombre} ${res?.apellido ?? apellido}`,
-          email:  res?.email ?? email,
-          role:   'docente',
-          status: 'activo',
-        };
-        this.users = [...this.users, newUser];
- 
-        // Notificar al AdminPanel para que TeachersComponent lo reciba
         const docenteRow: DocenteRow = {
-          id_docente: res?.id_docente ?? id_docente,
-          nombre:     res?.nombre    ?? nombre,
-          apellido:   res?.apellido  ?? apellido,
-          email:      res?.email     ?? email,
-          telefono:   res?.telefono  ?? telefono,
-          status:     'activo',
+          id_docente: String(res.id_docente),
+          nombre:     res.nombre,
+          apellido:   res.apellido,
+          email:      res.correo,
+          telefono:   res.telefono,
+          status:     'activo'
         };
         this.docenteCreado.emit(docenteRow);
- 
         this.isCreatingDocente.set(false);
         this.docenteSuccess.set(true);
         setTimeout(() => {
@@ -239,20 +251,19 @@ export class UsersComponent {
       error: (err: any) => {
         this.isCreatingDocente.set(false);
         const msg = err?.error?.detail || err?.error?.message;
-        this.docenteError.set(msg || 'No se pudo registrar el docente. Intenta de nuevo.');
+        this.docenteError.set(msg || 'No se pudo registrar el docente.');
       }
     });
   }
- 
-  // ── Toggle inhabilitar / habilitar ────────────────────────
+
   canToggle(u: UserRow): boolean {
-    return u.role === 'auxiliar';
+    return u.roleId === 2; // solo auxiliares
   }
- 
+
   toggleAction(u: UserRow): 'inhabilitar' | 'habilitar' {
     return u.status === 'activo' ? 'inhabilitar' : 'habilitar';
   }
- 
+
   requestToggle(u: UserRow): void {
     this.userToToggle.set(u);
     this.password.set('');
@@ -260,36 +271,46 @@ export class UsersComponent {
     this.showPassword.set(false);
     this.showModal.set(true);
   }
- 
+
   closeModal(): void {
+    if (this.isToggling()) return;
     this.showModal.set(false);
     this.userToToggle.set(null);
   }
- 
+
   confirmToggle(): void {
-    if (this.password() !== this.ADMIN_PASSWORD) {
-      this.passwordError.set('Contraseña incorrecta. Inténtalo de nuevo.');
-      return;
-    }
     const target = this.userToToggle();
-    if (target) {
-      const idx = this.users.findIndex(u => u.id === target.id);
-      if (idx !== -1) {
-        this.users[idx] = {
-          ...this.users[idx],
-          status: this.users[idx].status === 'activo' ? 'inactivo' : 'activo'
-        };
-        this.users = [...this.users];
+    if (!target) return;
+
+    this.isToggling.set(true);
+    this.passwordError.set('');
+    const nuevoEstado = target.status === 'activo' ? false : true;
+
+    this.userService.toggleUsuario(target.id, nuevoEstado).subscribe({
+      next: () => {
+        const idx = this.users.findIndex(u => u.id === target.id);
+        if (idx !== -1) {
+          this.users[idx] = {
+            ...this.users[idx],
+            status: nuevoEstado ? 'activo' : 'inactivo'
+          };
+          this.users = [...this.users];
+        }
+        this.isToggling.set(false);
+        this.closeModal();
+      },
+      error: (err: any) => {
+        this.isToggling.set(false);
+        this.passwordError.set(err?.error?.detail || 'Error al actualizar el estado.');
       }
-    }
-    this.closeModal();
+    });
   }
- 
+
   onPasswordInput(value: string): void {
     this.password.set(value);
     if (this.passwordError()) this.passwordError.set('');
   }
- 
+
   toggleShowPassword(): void {
     this.showPassword.set(!this.showPassword());
   }
