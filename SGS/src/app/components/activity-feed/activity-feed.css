@@ -212,3 +212,55 @@
   margin: 0; line-height: 1.6;
   white-space: pre-wrap;
 }
+/* ── Animación de salida al resolver ─────────────────────── */
+.alert-item--resolving {
+  opacity: 0;
+  transform: translateX(20px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+  pointer-events: none;
+}
+ 
+/* ── Separador en el modal ───────────────────────────────── */
+.modal-divider {
+  height: 1px;
+  background: #F1F5F9;
+  margin: 4px 0;
+}
+ 
+/* ── Botón marcar como solucionado ───────────────────────── */
+.btn-resolve {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 20px;
+  background: #10B981;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-resolve:hover:not(:disabled) {
+  background: #059669;
+  transform: scale(1.01);
+}
+.btn-resolve:disabled {
+  background: #6EE7B7;
+  cursor: not-allowed;
+}
+.btn-resolve .material-icons { font-size: 18px; }
+ 
+/* ── Spinner dentro del botón ────────────────────────────── */
+.spinner {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.35);
+  border-top-color: #fff;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

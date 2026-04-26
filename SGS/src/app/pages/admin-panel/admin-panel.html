@@ -60,6 +60,11 @@
         <app-reports></app-reports>
       </ng-container>
  
+      <!-- Problemas audiovisuales -->
+      <ng-container *ngIf="activeTab === 'av-issues'">
+        <app-av-issues></app-av-issues>
+      </ng-container>
+ 
     </div>
   </div>
 </div>

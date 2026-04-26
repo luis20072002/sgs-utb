@@ -40,6 +40,7 @@
         class="alert-item alert-item--warning"
         *ngFor="let r of audiovisualAlerts"
         [class.alert-item--selected]="selectedReport?.id === r.id"
+        [class.alert-item--resolving]="resolvedId() === r.id"
         (click)="selectAlert(r)"
       >
         <span class="alert-item__icon">⚠️</span>
@@ -70,7 +71,7 @@
           <span class="modal-subtitle">{{ selectedReport.aula }} — {{ selectedReport.materia }}</span>
         </div>
       </div>
-      <button class="modal-close" (click)="closeModal()">
+      <button class="modal-close" (click)="closeModal()" [disabled]="resolving()">
         <span class="material-icons">close</span>
       </button>
     </div>
@@ -111,6 +112,17 @@
         <span class="modal-info-item__label">Observaciones del auxiliar</span>
         <p class="modal-observaciones__text">{{ selectedReport.observaciones }}</p>
       </div>
+ 
+      <!-- Separador -->
+      <div class="modal-divider"></div>
+ 
+      <!-- Botón marcar como solucionado -->
+      <button class="btn-resolve" (click)="resolveAlert()" [disabled]="resolving()">
+        <span class="spinner" *ngIf="resolving()"></span>
+        <span class="material-icons" *ngIf="!resolving()">check_circle</span>
+        {{ resolving() ? 'Procesando...' : 'Marcar como solucionado' }}
+      </button>
+ 
     </div>
  
   </div>
