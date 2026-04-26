@@ -10,6 +10,7 @@ import { UsersComponent } from './users/users';
 import { ReportsComponent } from './reports/reports';
 import { TeachersComponent } from './teachers/teachers';
 import { DocenteRow } from './teachers/teachers';
+import { AvIssuesComponent } from './av-issues/av-issues';
 import { User, KPIStats, ActivityLog } from '../../../models/edu.models';
 import { AuthService } from '../../services/auth';
 import { ReportService, Report } from '../../services/report';
@@ -30,7 +31,7 @@ const APP_USERS = [
     CommonModule, RouterOutlet,
     SidebarComponent, HeaderComponent,
     KpiCardsComponent, ActivityFeedComponent, ChartsComponent,
-    UsersComponent, ReportsComponent, TeachersComponent
+    UsersComponent, ReportsComponent, TeachersComponent, AvIssuesComponent
   ],
   templateUrl: 'admin-panel.html',
   styleUrls: ['admin-panel.css']
@@ -110,11 +111,12 @@ export class AdminPanelComponent implements OnInit {
  
   get welcomeTitle(): string {
     const titles: Record<string, string> = {
-      dashboard: 'Panel de Administrador',
-      charts:    'Panel de Administrador',
-      users:     'Gestión de Usuarios',
-      teachers:  'Gestión de Docentes',
-      reports:   'Reportes de Auxiliares',
+      dashboard:  'Panel de Administrador',
+      charts:     'Panel de Administrador',
+      users:      'Gestión de Usuarios',
+      teachers:   'Gestión de Docentes',
+      reports:    'Reportes de Auxiliares',
+      'av-issues': 'Problemas Audiovisuales',
     };
     return titles[this.activeTab] ?? 'Panel de Administrador';
   }

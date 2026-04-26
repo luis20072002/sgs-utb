@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges } from '@angular/core';
+import { Component, Input, OnChanges, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivityLog } from '../../../models/edu.models';
 import { ReportService, Report } from '../../services/report';
@@ -16,6 +16,9 @@ export class ActivityFeedComponent implements OnChanges {
   audiovisualAlerts: Report[] = [];
   selectedReport: Report | null = null;
  
+  resolving = signal(false);
+  resolvedId = signal<string | null>(null);
+ 
   constructor(private reportService: ReportService) {}
  
   ngOnChanges(): void {
@@ -24,7 +27,6 @@ export class ActivityFeedComponent implements OnChanges {
  
   loadAlerts(): void {
     const reports = this.reportService.getReports();
-    // Solo muestra reportes donde el proyector NO funciona
     this.audiovisualAlerts = reports.filter(r => !r.proyectorFunciona);
   }
  
@@ -33,7 +35,28 @@ export class ActivityFeedComponent implements OnChanges {
   }
  
   closeModal(): void {
+    if (this.resolving()) return;
     this.selectedReport = null;
+  }
+ 
+  resolveAlert(): void {
+    if (!this.selectedReport || this.resolving()) return;
+ 
+    const id = this.selectedReport.id;
+    this.resolving.set(true);
+ 
+    setTimeout(() => {
+      this.reportService.deleteReport(id);
+      this.resolvedId.set(id);
+ 
+      // Animar salida y luego quitar de la lista
+      setTimeout(() => {
+        this.loadAlerts();
+        this.resolving.set(false);
+        this.resolvedId.set(null);
+        this.selectedReport = null;
+      }, 400);
+    }, 600);
   }
  
   getLogModuleLabel(type: string): string {
@@ -46,3 +69,4 @@ export class ActivityFeedComponent implements OnChanges {
     return map[type] ?? 'Sistema';
   }
 }
+ 

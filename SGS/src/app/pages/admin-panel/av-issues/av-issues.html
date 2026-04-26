@@ -1,0 +1,176 @@
+<div class="av-container">
+ 
+  <!-- Cabecera -->
+  <div class="av-header">
+    <div class="av-header__left">
+      <div class="av-alert-badge" *ngIf="totalIssues > 0">
+        <span class="material-icons">warning_amber</span>
+        {{ totalIssues }} problema{{ totalIssues !== 1 ? 's' : '' }} activo{{ totalIssues !== 1 ? 's' : '' }}
+      </div>
+      <div class="av-alert-badge av-alert-badge--ok" *ngIf="totalIssues === 0">
+        <span class="material-icons">check_circle</span>
+        Sin problemas activos
+      </div>
+    </div>
+    <p class="av-header__hint">
+      <span class="material-icons" style="font-size:13px">info</span>
+      Marca un problema como solucionado para eliminarlo del registro
+    </p>
+  </div>
+ 
+  <!-- Estado vacío -->
+  <div class="empty-state" *ngIf="issues.length === 0">
+    <div class="empty-state__icon-wrap">
+      <span class="material-icons">videocam</span>
+    </div>
+    <h3 class="empty-state__title">Todo en orden</h3>
+    <p class="empty-state__desc">No hay problemas audiovisuales pendientes en este momento.</p>
+  </div>
+ 
+  <!-- Cards de problemas -->
+  <div class="issues-grid" *ngIf="issues.length > 0">
+    <div
+      class="issue-card"
+      *ngFor="let issue of issues"
+      [class.issue-card--resolving]="justResolved() === issue.id"
+    >
+      <!-- Chip de estado -->
+      <div class="issue-card__status">
+        <span class="material-icons status-icon">videocam_off</span>
+        <span class="status-label">Proyector averiado</span>
+      </div>
+ 
+      <!-- Cuerpo -->
+      <div class="issue-card__body">
+        <div class="issue-field">
+          <span class="material-icons issue-field__icon">meeting_room</span>
+          <div>
+            <span class="issue-field__label">Aula</span>
+            <span class="issue-field__value issue-field__value--big">{{ issue.aula }}</span>
+          </div>
+        </div>
+ 
+        <div class="issue-field">
+          <span class="material-icons issue-field__icon">menu_book</span>
+          <div>
+            <span class="issue-field__label">Materia</span>
+            <span class="issue-field__value">{{ issue.materia }}</span>
+          </div>
+        </div>
+ 
+        <div class="issue-field">
+          <span class="material-icons issue-field__icon">person</span>
+          <div>
+            <span class="issue-field__label">Reportado por</span>
+            <span class="issue-field__value">{{ issue.auxiliarName }}</span>
+          </div>
+        </div>
+ 
+        <div class="issue-field">
+          <span class="material-icons issue-field__icon">schedule</span>
+          <div>
+            <span class="issue-field__label">Fecha y hora</span>
+            <span class="issue-field__value">{{ issue.fecha }} — {{ issue.hora }}</span>
+          </div>
+        </div>
+ 
+        <!-- Observaciones si las hay -->
+        <div class="issue-obs" *ngIf="issue.observaciones && issue.observaciones !== 'Sin observaciones adicionales.'">
+          <span class="material-icons issue-obs__icon">chat_bubble_outline</span>
+          <p class="issue-obs__text">{{ issue.observaciones }}</p>
+        </div>
+ 
+        <!-- Badge profesor -->
+        <div class="issue-profesor">
+          <span class="badge"
+            [class.badge--yes]="issue.profesorAsistio"
+            [class.badge--no]="!issue.profesorAsistio">
+            <span class="material-icons" style="font-size:12px">
+              {{ issue.profesorAsistio ? 'check' : 'close' }}
+            </span>
+            Profesor {{ issue.profesorAsistio ? 'asistió' : 'no asistió' }}
+          </span>
+        </div>
+      </div>
+ 
+      <!-- Footer con acción -->
+      <div class="issue-card__footer">
+        <span class="issue-id">ID: {{ issue.id }}</span>
+        <button class="btn-resolve" (click)="requestResolve(issue)">
+          <span class="material-icons">check_circle</span>
+          Marcar como solucionado
+        </button>
+      </div>
+ 
+    </div>
+  </div>
+ 
+</div>
+ 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- Modal de confirmación                                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showModal()" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+ 
+    <div class="modal-header">
+      <div class="modal-header__info">
+        <span class="material-icons modal-header__icon">build_circle</span>
+        <div>
+          <h3 class="modal-title">Confirmar resolución</h3>
+          <span class="modal-subtitle">El problema se eliminará del registro</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeModal()" [disabled]="resolving()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+ 
+    <div class="modal-body">
+ 
+      <!-- Resumen del problema -->
+      <div class="resolve-summary">
+        <div class="resolve-summary__row">
+          <span class="material-icons resolve-summary__icon">meeting_room</span>
+          <div>
+            <p class="resolve-summary__label">Aula afectada</p>
+            <p class="resolve-summary__value">{{ issueToResolve()?.aula }}</p>
+          </div>
+        </div>
+        <div class="resolve-summary__row">
+          <span class="material-icons resolve-summary__icon">menu_book</span>
+          <div>
+            <p class="resolve-summary__label">Materia</p>
+            <p class="resolve-summary__value">{{ issueToResolve()?.materia }}</p>
+          </div>
+        </div>
+        <div class="resolve-summary__row">
+          <span class="material-icons resolve-summary__icon">schedule</span>
+          <div>
+            <p class="resolve-summary__label">Reportado el</p>
+            <p class="resolve-summary__value">{{ issueToResolve()?.fecha }} a las {{ issueToResolve()?.hora }}</p>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="info-box">
+        <span class="material-icons info-box__icon">info</span>
+        <span>
+          Al confirmar, este problema será eliminado de la lista de incidencias activas.
+          El reporte original permanecerá en la sección de <strong>Reportes</strong>.
+        </span>
+      </div>
+ 
+    </div>
+ 
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()" [disabled]="resolving()">Cancelar</button>
+      <button class="btn-confirm" (click)="confirmResolve()" [disabled]="resolving()">
+        <span class="spinner" *ngIf="resolving()"></span>
+        <span class="material-icons" *ngIf="!resolving()">check_circle</span>
+        {{ resolving() ? 'Procesando...' : 'Confirmar solución' }}
+      </button>
+    </div>
+ 
+  </div>
+</div>
