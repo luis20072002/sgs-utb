@@ -3,16 +3,16 @@
   <div class="global-loading__icon"><span class="material-icons">verified_user</span></div>
   <div class="global-loading__spinner"></div>
 </div>
- 
+
 <!-- App Layout -->
 <div class="app-layout" *ngIf="!isLoading">
   <app-sidebar [activeTab]="activeTab" (tabChange)="onTabChange($event)"></app-sidebar>
- 
+
   <div class="app-main">
-    <app-header [user]="mockUser" (logout)="onLogout()"></app-header>
- 
+    <app-header [user]="currentUser" (logout)="onLogout()"></app-header>
+
     <div class="app-content">
- 
+
       <!-- Bienvenida -->
       <div class="welcome-section">
         <div>
@@ -23,17 +23,17 @@
           <h2 class="welcome-title">{{ welcomeTitle }}</h2>
         </div>
       </div>
- 
+
       <!-- Dashboard -->
       <ng-container *ngIf="activeTab === 'dashboard' && !showCharts">
         <div class="section-hint">
           <span class="material-icons" style="font-size:14px;color:#3B82F6">info</span>
           Haz clic en una tarjeta para ver el gráfico detallado
         </div>
-        <app-kpi-cards [stats]="mockStats" (cardClick)="onKpiClick()"></app-kpi-cards>
+        <app-kpi-cards [stats]="stats" (cardClick)="onKpiClick()"></app-kpi-cards>
         <app-activity-feed [logs]="mockLogs"></app-activity-feed>
       </ng-container>
- 
+
       <!-- Gráficos -->
       <ng-container *ngIf="showCharts">
         <div class="charts-header">
@@ -42,29 +42,19 @@
           </button>
           <h3 class="charts-title">Estadísticas del sistema</h3>
         </div>
-        <app-charts [stats]="mockStats"></app-charts>
+        <app-charts [stats]="stats"></app-charts>
       </ng-container>
- 
+
       <!-- Usuarios -->
       <ng-container *ngIf="activeTab === 'users'">
-        <app-users (docenteCreado)="onDocenteCreado($event)"></app-users>
+        <app-users></app-users>
       </ng-container>
- 
-      <!-- Docentes -->
-      <ng-container *ngIf="activeTab === 'teachers'">
-        <app-teachers [newDocentes]="newDocentes"></app-teachers>
-      </ng-container>
- 
+
       <!-- Reportes -->
       <ng-container *ngIf="activeTab === 'reports'">
         <app-reports></app-reports>
       </ng-container>
- 
-      <!-- Problemas audiovisuales -->
-      <ng-container *ngIf="activeTab === 'av-issues'">
-        <app-av-issues></app-av-issues>
-      </ng-container>
- 
+
     </div>
   </div>
 </div>
