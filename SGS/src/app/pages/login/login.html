@@ -1,128 +1,219 @@
-<div class="container-login">
+<div class="login-page">
 
-  <!-- ===== CARD LOGIN ===== -->
-  <div class="wrapper" [class.wrapper--hidden]="showChangePassword()">
-    <div class="from-header">
-      <div class="titulo">
-        <div class="titulo-login">Bienvenido a <span>SGS</span></div>
-        <p class="sub-titulo">Accede a tu cuenta</p>
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANEL IZQUIERDO: formulario                                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="login-panel login-panel--form">
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand__logo">
+        <span class="material-icons">school</span>
       </div>
+      <span class="brand__name">SGS</span>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="login()" class="login-form" autocomplete="off">
+    <!-- ===== CARD LOGIN ===== -->
+    <div class="form-wrap" *ngIf="!showChangePassword()">
+      <header class="form-head">
+        <h1 class="form-head__title">Iniciar sesión</h1>
+        <p class="form-head__sub">Bienvenido. Ingresa tus credenciales para acceder.</p>
+      </header>
 
-      <!-- Email -->
-      <div class="caja" [class.caja--error]="hasError('email')">
-        <input type="text" class="input-field" id="log-email" formControlName="email" autocomplete="off">
-        <label for="log-email" class="label">Correo</label>
-        <i class='bx bxl-gmail'></i>
-        <span class="field-error" *ngIf="hasError('email')">Ingresa un correo válido</span>
-      </div>
+      <form [formGroup]="form" (ngSubmit)="login()" class="form" autocomplete="off">
 
-      <!-- Password -->
-      <div class="caja" [class.caja--error]="hasError('password')">
-        <input [type]="showPassword() ? 'text' : 'password'"
-               class="input-field input-field--padright"
-               id="log-pass"
-               formControlName="password"
-               autocomplete="current-password">
-        <label for="log-pass" class="label">Contraseña</label>
-        <button type="button" class="btn-eye" (click)="togglePassword()" tabindex="-1">
-          <i class='bx' [class.bx-show]="!showPassword()" [class.bx-hide]="showPassword()"></i>
-        </button>
-        <span class="field-error" *ngIf="hasError('password')">La contraseña es requerida</span>
-      </div>
-
-      <!-- Links -->
-      <div class="form-cols">
-        <div class="col-1"></div>
-        <div class="col-2">
-          <button type="button" class="link-btn" (click)="openChangePassword()">¿Cambiar contraseña?</button>
+        <!-- Email -->
+        <div class="field" [class.field--error]="hasError('email')">
+          <label for="log-email" class="field__label">Correo institucional</label>
+          <div class="field__input-wrap">
+            <span class="material-icons field__icon">mail_outline</span>
+            <input
+              type="text"
+              id="log-email"
+              class="field__input"
+              formControlName="email"
+              placeholder="usuario@sgs.com"
+              autocomplete="off">
+          </div>
+          <span class="field__error" *ngIf="hasError('email')">
+            <span class="material-icons">error_outline</span>
+            Ingresa un correo válido
+          </span>
         </div>
-      </div>
 
-      <!-- Error global -->
-      <div class="alert-error" *ngIf="errorMsg()">
-        <i class='bx bx-error-circle'></i> {{ errorMsg() }}
-      </div>
+        <!-- Password -->
+        <div class="field" [class.field--error]="hasError('password')">
+          <label for="log-pass" class="field__label">Contraseña</label>
+          <div class="field__input-wrap">
+            <span class="material-icons field__icon">lock_outline</span>
+            <input
+              [type]="showPassword() ? 'text' : 'password'"
+              id="log-pass"
+              class="field__input field__input--padright"
+              formControlName="password"
+              placeholder="••••••••"
+              autocomplete="current-password">
+            <button type="button" class="field__eye" (click)="togglePassword()" tabindex="-1" aria-label="Mostrar/ocultar contraseña">
+              <span class="material-icons">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          <span class="field__error" *ngIf="hasError('password')">
+            <span class="material-icons">error_outline</span>
+            La contraseña es requerida
+          </span>
+        </div>
 
-      <!-- Submit -->
-      <div class="caja">
-        <button type="submit" class="btn-submit" [disabled]="isLoading()">
+        <!-- Acciones secundarias: remember me + forgot -->
+        <div class="form__row-actions">
+          <label class="checkbox">
+            <input type="checkbox" disabled>
+            <span class="checkbox__box"></span>
+            <span class="checkbox__label">Recordarme</span>
+          </label>
+          <button type="button" class="link" (click)="openChangePassword()">¿Cambiar contraseña?</button>
+        </div>
+
+        <!-- Error global -->
+        <div class="alert alert--error" *ngIf="errorMsg()" role="alert">
+          <span class="material-icons">error</span>
+          <span>{{ errorMsg() }}</span>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-primary" [disabled]="isLoading()">
           <span class="spinner" *ngIf="isLoading()"></span>
           <span *ngIf="!isLoading()">Iniciar sesión</span>
         </button>
-      </div>
 
-    </form>
-  </div>
+      </form>
 
-  <!-- ===== CARD CAMBIO DE CONTRASEÑA ===== -->
-  <div class="wrapper" *ngIf="showChangePassword()">
-    <div class="from-header">
-      <div class="titulo">
-        <div class="titulo-login">Cambiar <span>Contraseña</span></div>
-        <p class="sub-titulo">Ingresa tu contraseña actual y la nueva</p>
-      </div>
+      <!-- Footer del card -->
+      <p class="form-foot">
+        ¿Necesitas una cuenta? <span class="form-foot__hint">Contacta al administrador</span>
+      </p>
     </div>
 
-    <form [formGroup]="changePassForm" (ngSubmit)="submitChangePassword()" class="login-form" autocomplete="off">
-
-      <!-- Contraseña actual -->
-      <div class="caja" [class.caja--error]="hasChangeError('current_password')">
-        <input [type]="showCurrentPassword() ? 'text' : 'password'"
-               class="input-field input-field--padright"
-               id="cp-current"
-               formControlName="current_password">
-        <label for="cp-current" class="label">Contraseña actual</label>
-        <button type="button" class="btn-eye" (click)="toggleCurrentPassword()" tabindex="-1">
-          <i class='bx' [class.bx-show]="!showCurrentPassword()" [class.bx-hide]="showCurrentPassword()"></i>
+    <!-- ===== CARD CAMBIO DE CONTRASEÑA ===== -->
+    <div class="form-wrap" *ngIf="showChangePassword()">
+      <header class="form-head">
+        <button type="button" class="back-btn" (click)="closeChangePassword()" aria-label="Volver">
+          <span class="material-icons">arrow_back</span>
         </button>
-        <span class="field-error" *ngIf="hasChangeError('current_password')">Campo requerido</span>
-      </div>
+        <h1 class="form-head__title">Cambiar contraseña</h1>
+        <p class="form-head__sub">Ingresa tu contraseña actual y la nueva.</p>
+      </header>
 
-      <!-- Nueva contraseña -->
-      <div class="caja" [class.caja--error]="hasChangeError('new_password')">
-        <input [type]="showNewPassword() ? 'text' : 'password'"
-               class="input-field input-field--padright"
-               id="cp-new"
-               formControlName="new_password">
-        <label for="cp-new" class="label">Nueva contraseña</label>
-        <button type="button" class="btn-eye" (click)="toggleNewPassword()" tabindex="-1">
-          <i class='bx' [class.bx-show]="!showNewPassword()" [class.bx-hide]="showNewPassword()"></i>
-        </button>
-        <span class="field-error" *ngIf="hasChangeError('new_password')">Mínimo 6 caracteres</span>
-      </div>
+      <form [formGroup]="changePassForm" (ngSubmit)="submitChangePassword()" class="form" autocomplete="off">
 
-      <!-- Confirmar nueva contraseña -->
-      <div class="caja" [class.caja--error]="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
-        <input [type]="showConfirmPassword() ? 'text' : 'password'"
-               class="input-field input-field--padright"
-               id="cp-confirm"
-               formControlName="confirm_password">
-        <label for="cp-confirm" class="label">Confirmar contraseña</label>
-        <button type="button" class="btn-eye" (click)="toggleConfirmPassword()" tabindex="-1">
-          <i class='bx' [class.bx-show]="!showConfirmPassword()" [class.bx-hide]="showConfirmPassword()"></i>
-        </button>
-        <span class="field-error" *ngIf="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
-          Las contraseñas no coinciden
-        </span>
-      </div>
+        <!-- Actual -->
+        <div class="field" [class.field--error]="hasChangeError('current_password')">
+          <label for="cp-current" class="field__label">Contraseña actual</label>
+          <div class="field__input-wrap">
+            <span class="material-icons field__icon">lock_outline</span>
+            <input
+              [type]="showCurrentPassword() ? 'text' : 'password'"
+              id="cp-current"
+              class="field__input field__input--padright"
+              formControlName="current_password">
+            <button type="button" class="field__eye" (click)="toggleCurrentPassword()" tabindex="-1">
+              <span class="material-icons">{{ showCurrentPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          <span class="field__error" *ngIf="hasChangeError('current_password')">
+            <span class="material-icons">error_outline</span> Campo requerido
+          </span>
+        </div>
 
-      <!-- Mensajes -->
-      <div class="alert-error" *ngIf="errorMsg()"><i class='bx bx-error-circle'></i> {{ errorMsg() }}</div>
-      <div class="alert-success" *ngIf="successMsg()"><i class='bx bx-check-circle'></i> {{ successMsg() }}</div>
+        <!-- Nueva -->
+        <div class="field" [class.field--error]="hasChangeError('new_password')">
+          <label for="cp-new" class="field__label">Nueva contraseña</label>
+          <div class="field__input-wrap">
+            <span class="material-icons field__icon">vpn_key</span>
+            <input
+              [type]="showNewPassword() ? 'text' : 'password'"
+              id="cp-new"
+              class="field__input field__input--padright"
+              formControlName="new_password">
+            <button type="button" class="field__eye" (click)="toggleNewPassword()" tabindex="-1">
+              <span class="material-icons">{{ showNewPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          <span class="field__error" *ngIf="hasChangeError('new_password')">
+            <span class="material-icons">error_outline</span> Mínimo 6 caracteres
+          </span>
+        </div>
 
-      <!-- Acciones -->
-      <div class="form-actions">
-        <button type="button" class="btn-secondary" (click)="closeChangePassword()">Cancelar</button>
-        <button type="submit" class="btn-submit btn-submit--flex" [disabled]="isLoading()">
-          <span class="spinner" *ngIf="isLoading()"></span>
-          <span *ngIf="!isLoading()">Guardar</span>
-        </button>
-      </div>
+        <!-- Confirmar -->
+        <div class="field"
+             [class.field--error]="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
+          <label for="cp-confirm" class="field__label">Confirmar contraseña</label>
+          <div class="field__input-wrap">
+            <span class="material-icons field__icon">vpn_key</span>
+            <input
+              [type]="showConfirmPassword() ? 'text' : 'password'"
+              id="cp-confirm"
+              class="field__input field__input--padright"
+              formControlName="confirm_password">
+            <button type="button" class="field__eye" (click)="toggleConfirmPassword()" tabindex="-1">
+              <span class="material-icons">{{ showConfirmPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          <span class="field__error"
+                *ngIf="changePassForm.hasError('mismatch') && changePassForm.get('confirm_password')?.touched">
+            <span class="material-icons">error_outline</span> Las contraseñas no coinciden
+          </span>
+        </div>
 
-    </form>
-  </div>
+        <!-- Mensajes -->
+        <div class="alert alert--error" *ngIf="errorMsg()">
+          <span class="material-icons">error</span>
+          <span>{{ errorMsg() }}</span>
+        </div>
+        <div class="alert alert--success" *ngIf="successMsg()">
+          <span class="material-icons">check_circle</span>
+          <span>{{ successMsg() }}</span>
+        </div>
+
+        <!-- Acciones -->
+        <div class="form__row-actions form__row-actions--end">
+          <button type="button" class="btn-ghost" (click)="closeChangePassword()">Cancelar</button>
+          <button type="submit" class="btn-primary btn-primary--inline" [disabled]="isLoading()">
+            <span class="spinner" *ngIf="isLoading()"></span>
+            <span *ngIf="!isLoading()">Guardar</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Pie legal -->
+    <footer class="login-foot">
+      <span>© SGS · Todos los derechos reservados</span>
+    </footer>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- PANEL DERECHO: ilustración / animación                       -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <aside class="login-panel login-panel--brand" aria-hidden="true">
+    <!-- Decorativos sutiles -->
+    <span class="deco deco--1"></span>
+    <span class="deco deco--2"></span>
+    <span class="deco deco--3"></span>
+
+    <!-- Animación Lottie (se carga vía CDN en login.ts) -->
+    <div class="brand-art">
+      <div #lottieContainer class="brand-art__lottie"></div>
+    </div>
+
+    <!-- Texto -->
+    <div class="brand-copy">
+      <h2 class="brand-copy__title">Sistema de Gestión de Salones</h2>
+      <p class="brand-copy__sub">
+        Administra auxiliares, docentes, planillas y reportes desde un solo lugar.
+      </p>
+    </div>
+  </aside>
 
 </div>
