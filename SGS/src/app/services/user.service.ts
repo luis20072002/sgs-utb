@@ -17,12 +17,20 @@ export interface CreateDocentePayload {
   telefono: string;
 }
 
+export interface CreateCursoPayload {
+  nombre_curso: string;
+  codi_curso: string;
+  id_docente: number;
+  id_aula: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class UserService {
   private apiUrl = 'http://localhost:8000';
 
   constructor(private http: HttpClient) {}
 
+  // ── Usuarios ───────────────────────────────────────────────
   getUsuarios(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/usuarios/`);
   }
@@ -35,11 +43,47 @@ export class UserService {
     return this.http.put<any>(`${this.apiUrl}/usuarios/${id}`, { estado });
   }
 
+  // ── Docentes ───────────────────────────────────────────────
   getDocentes(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/docentes/`);
   }
 
   createDocente(data: CreateDocentePayload): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/docentes/`, data);
+  }
+
+  toggleDocente(id: number, activar: boolean): Observable<any> {
+    if (activar) {
+      return this.http.patch<any>(`${this.apiUrl}/docentes/${id}/activar`, {});
+    }
+    return this.http.delete<any>(`${this.apiUrl}/docentes/${id}`);
+  }
+
+  // ── Cursos ─────────────────────────────────────────────────
+  getCursos(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/cursos/`);
+  }
+
+  createCurso(data: CreateCursoPayload): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/cursos/`, data);
+  }
+
+  deleteCurso(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/cursos/${id}`);
+  }
+
+  // ── Aulas (para el select al crear cursos) ─────────────────
+  getAulas(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/aulas/`);
+  }
+
+  // ── Horarios de auxiliares ─────────────────────────────────
+  getHorarios(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/horarios/`);
+  }
+
+  // ── Registros de aula ──────────────────────────────────────
+  getRegistros(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/registros/`);
   }
 }
