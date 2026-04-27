@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   MI HORARIO — calendario semanal
+   ═══════════════════════════════════════════════════════════════════════ */
+:host { display: block; }
+
+.page-head { margin-bottom: 18px; }
+.page-head__title {
+  font-size: 24px; font-weight: 700;
+  letter-spacing: -0.02em; color: var(--text);
+}
+.page-head__sub { margin-top: 4px; font-size: 13px; color: var(--text-muted); }
+
+.page-loader {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 60px 24px; gap: 14px; color: var(--text-muted); font-size: 13px;
+}
+.page-loader__spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--border); border-top-color: var(--brand);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.alert {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius-sm);
+  font-size: 13px; margin-bottom: 14px;
+}
+.alert--error {
+  background: var(--error-bg); color: var(--error);
+  border: 1px solid rgba(225, 29, 72, 0.2);
+}
+.alert .material-icons { font-size: 18px; }
+
+/* ─── Calendario ─── */
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.day {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  overflow: hidden;
+  transition: all 0.18s;
+}
+.day:hover {
+  border-color: var(--border-strong);
+}
+
+.day--today {
+  border-color: var(--brand);
+  box-shadow: 0 4px 14px var(--brand-glow);
+}
+
+.day__head {
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.day--today .day__head {
+  background: var(--brand-50);
+  border-bottom-color: var(--brand-100);
+}
+
+.day__short {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.day__num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-left: auto;
+}
+.day--today .day__num { color: var(--brand); }
+
+.day__today-pill {
+  background: var(--brand);
+  color: var(--white);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.day__body {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+.day__empty .material-icons { font-size: 18px; }
+
+/* ─── Shift card ─── */
+.shift {
+  background: var(--brand-50);
+  border: 1px solid var(--brand-100);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shift__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.shift__row .material-icons {
+  font-size: 14px;
+  color: var(--brand);
+  margin-top: 1px;
+}
+.shift__row > div { display: flex; flex-direction: column; min-width: 0; }
+.shift__name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+.shift__time {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+.shift__period {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-faint);
+  padding-top: 4px;
+  border-top: 1px dashed var(--brand-100);
+}
+.shift__period .material-icons { font-size: 12px; }
+
+/* ─── Excepción ─── */
+.exception {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.exception .material-icons {
+  font-size: 14px;
+  color: #b45309;
+  margin-top: 1px;
+}
+.exception > div { display: flex; flex-direction: column; min-width: 0; }
+.exception__title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400e;
+}
+.exception__motivo {
+  font-size: 10px;
+  color: #78350f;
+  margin-top: 2px;
+}
+
+/* ─── Leyenda ─── */
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding-top: 10px;
+}
+.legend__item { display: inline-flex; align-items: center; gap: 6px; }
+.legend__dot {
+  width: 10px; height: 10px;
+  border-radius: 3px;
+}
+.legend__dot--shift     { background: var(--brand-50); border: 1px solid var(--brand); }
+.legend__dot--exception { background: #fef3c7; border: 1px solid #fcd34d; }
+.legend__dot--today     { background: var(--brand); }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   En pantallas estrechas pasamos a stack vertical (1 día por fila).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  .calendar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .day { min-height: 180px; }
+}
+
+@media (max-width: 600px) {
+  .calendar {
+    grid-template-columns: 1fr;
+  }
+  .day { min-height: auto; }
+}

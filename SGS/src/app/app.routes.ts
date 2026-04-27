@@ -6,6 +6,12 @@ import { HomeComponent } from './pages/home/home';
 import { UsersComponent } from './pages/admin-panel/users/users';
 import { authGuard, adminGuard, auxiliarGuard } from './guards/auth.guard';
 
+import { HomeDashboardComponent }   from './pages/home/dashboard/dashboard';
+import { HomePlanillaComponent }    from './pages/home/planilla/planilla';
+import { HomeSolicitudesComponent } from './pages/home/solicitudes/solicitudes';
+import { HomeNovedadesComponent }   from './pages/home/novedades/novedades';
+import { HomeHorarioComponent }     from './pages/home/horario/horario';
+import { HomePerfilComponent }      from './pages/home/perfil/perfil';
 /**
  * Rutas alineadas a los requerimientos:
  *   /login                       → pantalla de inicio de sesión
@@ -47,7 +53,15 @@ export const routes: Routes = [
   {
     path: 'home',
     component: HomeComponent,
-    canActivate: [auxiliarGuard]
+    canActivate: [auxiliarGuard],
+    children: [
+      { path: '',            component: HomeDashboardComponent },
+      { path: 'planilla',    component: HomePlanillaComponent },
+      { path: 'solicitudes', component: HomeSolicitudesComponent },
+      { path: 'novedades',   component: HomeNovedadesComponent },
+      { path: 'horario',     component: HomeHorarioComponent },
+      { path: 'perfil',      component: HomePerfilComponent }
+    ]
   },
 
   // Cualquier ruta desconocida vuelve al login

@@ -1,0 +1,148 @@
+<!-- Header -->
+<header class="page-head">
+  <div>
+    <h1 class="page-head__title">Mis solicitudes</h1>
+    <p class="page-head__sub">Gestiona y consulta el estado de tus solicitudes</p>
+  </div>
+</header>
+
+<!-- Tabs por estado -->
+<div class="tabs">
+  <button
+    class="tabs__item"
+    [class.tabs__item--active]="filtroEstado() === ''"
+    (click)="setFiltroEstado('')">
+    Todas <span class="tabs__count">{{ counts().total }}</span>
+  </button>
+  <button
+    class="tabs__item"
+    [class.tabs__item--active]="filtroEstado() === 'pendiente'"
+    (click)="setFiltroEstado('pendiente')">
+    Pendientes <span class="tabs__count">{{ counts().pendiente }}</span>
+  </button>
+  <button
+    class="tabs__item"
+    [class.tabs__item--active]="filtroEstado() === 'en_proceso'"
+    (click)="setFiltroEstado('en_proceso')">
+    En proceso <span class="tabs__count">{{ counts().en_proceso }}</span>
+  </button>
+  <button
+    class="tabs__item"
+    [class.tabs__item--active]="filtroEstado() === 'resuelta'"
+    (click)="setFiltroEstado('resuelta')">
+    Resueltas <span class="tabs__count">{{ counts().resuelta }}</span>
+  </button>
+</div>
+
+<!-- Filtros de fecha -->
+<div class="filters">
+  <label class="filters__field">
+    <span class="filters__label">Desde</span>
+    <input
+      type="date"
+      [ngModel]="fechaInicio()"
+      (ngModelChange)="fechaInicio.set($event)">
+  </label>
+  <label class="filters__field">
+    <span class="filters__label">Hasta</span>
+    <input
+      type="date"
+      [ngModel]="fechaFin()"
+      (ngModelChange)="fechaFin.set($event)">
+  </label>
+  <button class="btn-ghost" (click)="aplicarFechas()">Aplicar</button>
+  <button class="btn-link" *ngIf="fechaInicio() || fechaFin()" (click)="limpiarFechas()">
+    Limpiar
+  </button>
+</div>
+
+<!-- Loading / error -->
+<div class="page-loader" *ngIf="isLoading()">
+  <div class="page-loader__spinner"></div>
+  <p>Cargando solicitudes…</p>
+</div>
+
+<div class="alert alert--error" *ngIf="errorMsg() && !isLoading()">
+  <span class="material-icons">error</span> {{ errorMsg() }}
+</div>
+
+<!-- Empty -->
+<div class="empty-list" *ngIf="!isLoading() && !errorMsg() && filtered().length === 0">
+  <span class="material-icons">help_outline</span>
+  <p>No hay solicitudes en este filtro.</p>
+</div>
+
+<!-- Lista -->
+<div class="solic-list" *ngIf="!isLoading() && filtered().length > 0">
+  <article *ngFor="let s of filtered()" class="solic">
+    <div class="solic__head">
+      <span class="estado estado--{{ s.estado }}">
+        <span class="estado__dot"></span>
+        {{ estadoLabel(s.estado) }}
+      </span>
+      <span class="solic__date">{{ formatFecha(s.fecha_solicitud) }}</span>
+    </div>
+
+    <p class="solic__desc">{{ s.descripcion }}</p>
+
+    <div class="solic__meta" *ngIf="s.estado === 'resuelta'">
+      <p class="solic__meta-line">
+        <span class="material-icons">check_circle</span>
+        <strong>Resuelta:</strong> {{ formatFecha(s.fecha_resolucion) }}
+        <span *ngIf="s.resuelta_por_auxiliar" class="solic__by">por ti</span>
+      </p>
+      <p class="solic__meta-note" *ngIf="s.nota_resolucion">
+        “{{ s.nota_resolucion }}”
+      </p>
+    </div>
+
+    <div class="solic__actions" *ngIf="s.estado === 'pendiente'">
+      <button class="btn-primary btn-primary--sm" (click)="abrirResolver(s)">
+        <span class="material-icons">task_alt</span>
+        Marcar como resuelta
+      </button>
+    </div>
+  </article>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODAL: resolver solicitud                                    -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" *ngIf="showResolveModal()" (click)="cerrarResolver()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <header class="modal__head">
+      <h3>Resolver solicitud</h3>
+      <button class="modal__close" (click)="cerrarResolver()" [disabled]="isSubmitting()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal__body">
+      <p class="modal__hint">
+        Describe cómo se resolvió esta solicitud. Esta nota quedará registrada
+        y la solicitud no podrá cambiar de estado nuevamente.
+      </p>
+      <textarea
+        class="modal__textarea"
+        rows="4"
+        placeholder="Ej: Se reportó al área de mantenimiento y reemplazaron el cable HDMI…"
+        [ngModel]="resolveNote()"
+        (ngModelChange)="resolveNote.set($event)"
+        [disabled]="isSubmitting()"></textarea>
+
+      <div class="alert alert--error" *ngIf="submitError()">
+        <span class="material-icons">error</span> {{ submitError() }}
+      </div>
+    </div>
+
+    <footer class="modal__foot">
+      <button class="btn-ghost" (click)="cerrarResolver()" [disabled]="isSubmitting()">
+        Cancelar
+      </button>
+      <button class="btn-primary" (click)="confirmarResolucion()" [disabled]="isSubmitting()">
+        <span class="spinner" *ngIf="isSubmitting()"></span>
+        <span *ngIf="!isSubmitting()">Confirmar resolución</span>
+      </button>
+    </footer>
+  </div>
+</div>
