@@ -203,7 +203,7 @@ export class HomeComponent {
  
   logout() {
     this.auth.logout();
-    this.router.navigate(['/']);
+    this.router.navigate(['/login']);
   }
  
   hasError(field: string): boolean {

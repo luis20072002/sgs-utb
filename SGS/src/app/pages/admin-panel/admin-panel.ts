@@ -18,6 +18,7 @@ import { LogsComponent }         from './logs/logs';
 import { User, KPIStats, ActivityLog } from '../../../models/edu.models';
 import { AuthService }           from '../../services/auth';
 import { ReportService, Report } from '../../services/report';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-panel',
@@ -60,8 +61,6 @@ export class AdminPanelComponent implements OnInit {
     { id: '4', user: 'Admin',         action: 'eliminó un registro de planilla antiguo',  timestamp: 'Hace 2h',     type: 'delete' },
   ];
 
-  private apiUrl = 'http://localhost:8000';
-
   constructor(
     private cdr: ChangeDetectorRef,
     private auth: AuthService,
@@ -82,9 +81,9 @@ export class AdminPanelComponent implements OnInit {
     }
 
     forkJoin({
-      usuarios:  this.http.get<any[]>(`${this.apiUrl}/usuarios/`).pipe(catchError(() => of([]))),
-      docentes:  this.http.get<any[]>(`${this.apiUrl}/docentes/`).pipe(catchError(() => of([]))),
-      novedades: this.http.get<any[]>(`${this.apiUrl}/novedades/`).pipe(catchError(() => of([])))
+      usuarios:  this.http.get<any[]>(`${environment.apiUrl}/usuarios/`).pipe(catchError(() => of([]))),
+      docentes:  this.http.get<any[]>(`${environment.apiUrl}/docentes/`).pipe(catchError(() => of([]))),
+      novedades: this.http.get<any[]>(`${environment.apiUrl}/novedades/`).pipe(catchError(() => of([])))
     }).subscribe({
       next: ({ usuarios, docentes, novedades }) => {
         const reports = this.reportService.getReports();
@@ -125,12 +124,12 @@ export class AdminPanelComponent implements OnInit {
     const titles: Record<string, string> = {
       dashboard:   'Panel de Administrador',
       charts:      'Panel de Administrador',
-      users:       'Gestión de Usuarios',
-      teachers:    'Gestión de Docentes',
-      courses:     'Gestión de Cursos',
-      schedules:   'Horarios de Auxiliares',
-      logs:        'Registros de Aula',
-      reports:     'Reportes de Auxiliares',
+      auxiliares:       'Gestión de Auxiliares',
+      docentes:    'Gestión de Docentes',
+      cursos:     'Gestión de Cursos',
+      horarios:   'Horarios de Auxiliares',
+      registros:        'Registros de Aula',
+      reportes:     'Reportes de Auxiliares',
       'av-issues': 'Problemas Audiovisuales',
     };
     return titles[this.activeTab] ?? 'Panel de Administrador';
@@ -148,6 +147,6 @@ export class AdminPanelComponent implements OnInit {
 
   onLogout(): void {
     this.auth.logout();
-    this.router.navigate(['/']);
+    this.router.navigate(['/login']);
   }
 }
