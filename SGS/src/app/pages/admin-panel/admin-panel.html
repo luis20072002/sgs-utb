@@ -50,6 +50,26 @@
         <app-users></app-users>
       </ng-container>
 
+      <!-- Docentes -->
+      <ng-container *ngIf="activeTab === 'teachers'">
+        <app-teachers></app-teachers>
+      </ng-container>
+
+      <!-- Cursos -->
+      <ng-container *ngIf="activeTab === 'courses'">
+        <app-courses></app-courses>
+      </ng-container>
+
+      <!-- Horarios -->
+      <ng-container *ngIf="activeTab === 'schedules'">
+        <app-schedules></app-schedules>
+      </ng-container>
+
+      <!-- Registros -->
+      <ng-container *ngIf="activeTab === 'logs'">
+        <app-logs></app-logs>
+      </ng-container>
+
       <!-- Reportes -->
       <ng-container *ngIf="activeTab === 'reports'">
         <app-reports></app-reports>

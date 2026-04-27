@@ -1,0 +1,189 @@
+<div class="courses-container">
+
+  <!-- Loading / Error -->
+  <div class="state-banner state-banner--loading" *ngIf="isLoading()">
+    <span class="material-icons spin">sync</span> Cargando cursos…
+  </div>
+  <div class="state-banner state-banner--error" *ngIf="errorMsg()">
+    <span class="material-icons">error_outline</span> {{ errorMsg() }}
+    <button class="btn-retry" (click)="load()">Reintentar</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading() && !errorMsg()">
+
+    <!-- Cabecera -->
+    <div class="courses-header">
+      <div class="stat-pill">
+        <span class="material-icons">menu_book</span>
+        {{ cursos.length }} cursos registrados
+      </div>
+      <button class="btn-add" (click)="openModal()">
+        <span class="material-icons">add</span>
+        Agregar curso
+      </button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Código</th>
+            <th>Nombre del curso</th>
+            <th>Docente</th>
+            <th>Aula</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of cursos">
+            <td><span class="id-chip">{{ c.id_curso }}</span></td>
+            <td><span class="code-chip">{{ c.codi_curso }}</span></td>
+            <td class="td-name">{{ c.nombre_curso }}</td>
+            <td class="td-sub">{{ docenteNombre(c.id_docente) }}</td>
+            <td class="td-sub">{{ aulaNombre(c.id_aula) }}</td>
+            <td>
+              <button class="btn-danger" (click)="requestDelete(c)" title="Eliminar curso">
+                <span class="material-icons">delete_outline</span>
+                Eliminar
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="cursos.length === 0">
+            <td colspan="6" class="empty-state">
+              <span class="material-icons empty-state__icon">menu_book</span>
+              <p>No hay cursos registrados aún.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </ng-container>
+</div>
+
+<!-- ═══════════════ Modal Crear Curso ══════════════════════ -->
+<div class="modal-overlay" *ngIf="showModal()" (click)="closeModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <div class="modal-header modal-header--primary">
+      <div class="modal-header__info">
+        <span class="material-icons modal-header__icon">add_circle</span>
+        <div>
+          <h3 class="modal-title">Nuevo curso</h3>
+          <span class="modal-subtitle">Completa los datos del curso</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="success-msg" *ngIf="saveOk()">
+        <span class="material-icons">check_circle</span> Curso creado exitosamente
+      </div>
+
+      <div class="form-field" [class.form-field--error]="formErrors['nombre_curso']">
+        <label>Nombre del curso</label>
+        <input type="text" [(ngModel)]="form.nombre_curso" placeholder="Ej: Cálculo Diferencial">
+        <span class="field-err" *ngIf="formErrors['nombre_curso']">{{ formErrors['nombre_curso'] }}</span>
+      </div>
+
+      <div class="form-field" [class.form-field--error]="formErrors['codi_curso']">
+        <label>Código del curso</label>
+        <input type="text" [(ngModel)]="form.codi_curso" placeholder="Ej: MAT-101" maxlength="8">
+        <span class="field-err" *ngIf="formErrors['codi_curso']">{{ formErrors['codi_curso'] }}</span>
+      </div>
+
+      <div class="form-field" [class.form-field--error]="formErrors['id_docente']">
+        <label>Docente</label>
+        <select [(ngModel)]="form.id_docente">
+          <option [value]="0" disabled>— Selecciona un docente —</option>
+          <option *ngFor="let d of docentes" [value]="d.id_docente">
+            {{ d.nombre }} {{ d.apellido }}
+          </option>
+        </select>
+        <span class="field-err" *ngIf="formErrors['id_docente']">{{ formErrors['id_docente'] }}</span>
+      </div>
+
+      <div class="form-field" [class.form-field--error]="formErrors['id_aula']">
+        <label>Aula</label>
+        <select [(ngModel)]="form.id_aula">
+          <option [value]="0" disabled>— Selecciona un aula —</option>
+          <option *ngFor="let a of aulas" [value]="a.id_aula">
+            {{ a.nombre_aula || a.nombre || 'Aula ' + a.id_aula }}
+          </option>
+        </select>
+        <span class="field-err" *ngIf="formErrors['id_aula']">{{ formErrors['id_aula'] }}</span>
+      </div>
+
+      <div class="alert-error-msg" *ngIf="saveError()">
+        <span class="material-icons" style="font-size:14px">error_outline</span>
+        {{ saveError() }}
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeModal()" [disabled]="isSaving()">Cancelar</button>
+      <button class="btn-confirm btn-confirm--primary" (click)="guardarCurso()" [disabled]="isSaving()">
+        <span class="material-icons" *ngIf="!isSaving()">save</span>
+        <span class="material-icons spin" *ngIf="isSaving()">sync</span>
+        {{ isSaving() ? 'Guardando…' : 'Guardar curso' }}
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ Modal Eliminar Curso ════════════════════ -->
+<div class="modal-overlay" *ngIf="showDeleteModal()" (click)="closeDeleteModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <div class="modal-header modal-header--danger">
+      <div class="modal-header__info">
+        <span class="material-icons modal-header__icon">delete_forever</span>
+        <div>
+          <h3 class="modal-title">Eliminar curso</h3>
+          <span class="modal-subtitle">Esta acción no se puede deshacer</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="closeDeleteModal()">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="toggle-target">
+        <span class="toggle-target__avatar avatar--danger">
+          <span class="material-icons" style="font-size:20px">menu_book</span>
+        </span>
+        <div>
+          <p class="toggle-target__name">{{ cursoAEliminar()?.nombre_curso }}</p>
+          <p class="toggle-target__meta">{{ cursoAEliminar()?.codi_curso }} · ID {{ cursoAEliminar()?.id_curso }}</p>
+        </div>
+      </div>
+      <div class="info-box info-box--danger">
+        <span class="material-icons info-box__icon">warning</span>
+        <span>El curso será <strong>eliminado permanentemente</strong> de la base de datos.</span>
+      </div>
+      <div class="alert-error-msg" *ngIf="deleteError()">
+        <span class="material-icons" style="font-size:14px">error_outline</span>
+        {{ deleteError() }}
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeDeleteModal()" [disabled]="isDeleting()">Cancelar</button>
+      <button class="btn-confirm btn-confirm--danger" (click)="confirmDelete()" [disabled]="isDeleting()">
+        <span class="material-icons" *ngIf="!isDeleting()">delete_forever</span>
+        <span class="material-icons spin" *ngIf="isDeleting()">sync</span>
+        {{ isDeleting() ? 'Eliminando…' : 'Eliminar' }}
+      </button>
+    </div>
+
+  </div>
+</div>

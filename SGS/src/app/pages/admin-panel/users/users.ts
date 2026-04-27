@@ -19,9 +19,9 @@ interface UserRow {
 function passwordStrength(control: AbstractControl): ValidationErrors | null {
   const v: string = control.value || '';
   if (!v) return null;
-  if (v.length < 8)       return { tooShort: true };
-  if (!/[A-Z]/.test(v))   return { noUppercase: true };
-  if (!/[0-9]/.test(v))   return { noNumber: true };
+  if (v.length < 8)     return { tooShort: true };
+  if (!/[A-Z]/.test(v)) return { noUppercase: true };
+  if (!/[0-9]/.test(v)) return { noNumber: true };
   return null;
 }
 
@@ -80,7 +80,6 @@ export class UsersComponent implements OnInit {
       },
       { validators: this.matchPasswords }
     );
-
     this.docenteForm = this.fb.group({
       nombre:   ['', [Validators.required, Validators.minLength(2)]],
       apellido: ['', [Validators.required, Validators.minLength(2)]],
@@ -171,7 +170,6 @@ export class UsersComponent implements OnInit {
     this.isCreating.set(true);
     this.createError.set('');
     const { nombre, correo, password } = this.createForm.value;
-
     this.userService.createAuxiliar({
       nombre,
       correo,
@@ -229,16 +227,15 @@ export class UsersComponent implements OnInit {
     this.isCreatingDocente.set(true);
     this.docenteError.set('');
     const { nombre, apellido, correo, telefono } = this.docenteForm.value;
-
     this.userService.createDocente({ nombre, apellido, correo, telefono }).subscribe({
       next: (res: any) => {
         const docenteRow: DocenteRow = {
-          id_docente: String(res.id_docente),
+          id_docente: res.id_docente,
           nombre:     res.nombre,
           apellido:   res.apellido,
-          email:      res.correo,
+          correo:     res.correo,
           telefono:   res.telefono,
-          status:     'activo'
+          estado:     true
         };
         this.docenteCreado.emit(docenteRow);
         this.isCreatingDocente.set(false);
@@ -281,11 +278,9 @@ export class UsersComponent implements OnInit {
   confirmToggle(): void {
     const target = this.userToToggle();
     if (!target) return;
-
     this.isToggling.set(true);
     this.passwordError.set('');
-    const nuevoEstado = target.status === 'activo' ? false : true;
-
+    const nuevoEstado = target.status !== 'activo';
     this.userService.toggleUsuario(target.id, nuevoEstado).subscribe({
       next: () => {
         const idx = this.users.findIndex(u => u.id === target.id);
