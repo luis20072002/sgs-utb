@@ -1,5 +1,12 @@
 // src/app/pages/login/login.ts
-import { Component, signal } from '@angular/core';
+import {
+  Component,
+  signal,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+  OnDestroy
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -11,6 +18,28 @@ import { Router } from '@angular/router';
 
 import { AuthService } from '../../services/auth';
 
+/**
+ * Animación Lottie a mostrar en el panel derecho.
+ * Es un JSON público de LottieFiles (categoría dashboard/educación).
+ * Si quieres cambiarla, busca en https://lottiefiles.com → "Free animations"
+ * y reemplaza esta URL por la del JSON crudo.
+ */
+const LOTTIE_URL =
+  'https://lottie.host/b71040c1-72f9-48b9-bc1b-60a4bd971222/TNg8IegHmm.json';
+
+// Tipado mínimo de lottie-web (se carga en runtime via CDN, sin npm install)
+interface LottieAnim { destroy: () => void; }
+interface LottiePlayer {
+  loadAnimation: (opts: {
+    container: HTMLElement;
+    renderer: 'svg' | 'canvas' | 'html';
+    loop: boolean;
+    autoplay: boolean;
+    path: string;
+  }) => LottieAnim;
+}
+declare global { interface Window { lottie?: LottiePlayer; } }
+
 @Component({
   selector: 'app-login',
   templateUrl: './login.html',
@@ -18,7 +47,10 @@ import { AuthService } from '../../services/auth';
   styleUrls: ['./login.css'],
   standalone: true
 })
-export class Login {
+export class Login implements AfterViewInit, OnDestroy {
+  @ViewChild('lottieContainer') lottieContainer?: ElementRef<HTMLElement>;
+  private lottieAnim?: LottieAnim;
+
   form: FormGroup;
   changePassForm: FormGroup;
 
@@ -53,11 +85,62 @@ export class Login {
       { validators: this.passwordsMatch }
     );
 
-    // Si por alguna razón ya hay sesión activa, redirigimos directo
-    // (evita que un usuario logueado vuelva a ver el login).
+    // Si ya hay sesión válida, no mostramos el login
     if (this.auth.isLoggedIn()) {
       this.redirectByRole();
     }
+  }
+
+  // ── Lottie ───────────────────────────────────────────────────
+  ngAfterViewInit(): void {
+    this.loadLottie();
+  }
+
+  ngOnDestroy(): void {
+    this.lottieAnim?.destroy();
+  }
+
+  /**
+   * Carga lottie-web desde CDN solo cuando se monta el componente.
+   * Así no inflamos el bundle principal y mantenemos el package.json
+   * sin dependencias nuevas.
+   */
+  private loadLottie(): void {
+    if (!this.lottieContainer) return;
+
+    const start = () => {
+      if (!window.lottie || !this.lottieContainer) return;
+      this.lottieAnim = window.lottie.loadAnimation({
+        container: this.lottieContainer.nativeElement,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path: LOTTIE_URL
+      });
+    };
+
+    if (window.lottie) {
+      start();
+      return;
+    }
+
+    // Inyectamos el script una sola vez
+    const existing = document.querySelector<HTMLScriptElement>('script[data-lib="lottie"]');
+    if (existing) {
+      existing.addEventListener('load', start, { once: true });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js';
+    script.async = true;
+    script.dataset['lib'] = 'lottie';
+    script.onload = start;
+    script.onerror = () => {
+      // Si falla la CDN, simplemente queda el placeholder del CSS — todo bien.
+      console.warn('No se pudo cargar Lottie. Mostrando placeholder.');
+    };
+    document.head.appendChild(script);
   }
 
   // ── Validador del formulario de cambio de contraseña ─────────
@@ -97,7 +180,6 @@ export class Login {
 
   /**
    * Redirige al usuario según el rol guardado por AuthService.
-   * Cumple el requerimiento:
    *   - Administrador → /admin/dashboard
    *   - Auxiliar      → /home
    */
@@ -108,7 +190,6 @@ export class Login {
     } else if (role === 'auxiliar') {
       this.router.navigate(['/home']);
     } else {
-      // Caso defensivo: rol desconocido → cerramos sesión
       this.auth.logout();
       this.errorMsg.set('Tu cuenta no tiene un rol válido asignado. Contacta al administrador.');
     }
@@ -116,24 +197,14 @@ export class Login {
 
   /**
    * Convierte el error HTTP en un mensaje amigable.
-   * Centralizado para que el template solo muestre `errorMsg()`.
    */
   private parseLoginError(err: any): string {
-    // 0 = error de red / CORS / backend caído
     if (err?.status === 0) {
       return 'No se pudo conectar con el servidor. Verifica que el backend esté activo.';
     }
-    if (err?.status === 401) {
-      return 'Credenciales incorrectas. Revisa tu correo y contraseña.';
-    }
-    if (err?.status === 403) {
-      return 'Tu cuenta está inactiva. Contacta al administrador.';
-    }
-    if (err?.status === 422) {
-      // FastAPI devuelve 422 si el form-data no llegó como espera OAuth2
-      return 'Los datos enviados no son válidos.';
-    }
-    // Fallback: si el backend mandó un detail descriptivo, lo usamos
+    if (err?.status === 401) return 'Credenciales incorrectas. Revisa tu correo y contraseña.';
+    if (err?.status === 403) return 'Tu cuenta está inactiva. Contacta al administrador.';
+    if (err?.status === 422) return 'Los datos enviados no son válidos.';
     return err?.error?.detail ?? 'Ocurrió un error inesperado. Intenta nuevamente.';
   }
 

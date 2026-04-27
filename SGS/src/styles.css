@@ -1,19 +1,58 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   GLOBAL STYLES — SGS
+   ═══════════════════════════════════════════════════════════════════════ */
+
 :root {
-  --bg-base: #f4efe6;       /* fondo más claro */
-  --bg-card: #ffffff;       /* tarjeta blanca (clave) */
-  --bg-input: #f8f5f0;
+  /* ─── Marca ─── */
+  --brand:           #093ad8;
+  --brand-600:       #0832bd;
+  --brand-700:       #0729a0;
+  --brand-50:        #eef2ff;
+  --brand-100:       #e0e7ff;
+  --brand-glow:      rgba(9, 58, 216, 0.18);
 
-  --accent: #4a90d2;        /* tu azul original */
-  --accent-hover: #3a7fbe;
-  --accent-glow: rgba(74, 144, 210, 0.08);
-  --accent-border: rgba(74, 144, 210, 0.2);
-  --accent-ring: rgba(74, 144, 210, 0.12);
+  /* ─── Neutros ─── */
+  --white:           #ffffff;
+  --bg-soft:         #f7f8fc;
+  --text:            #0f1729;
+  --text-muted:      #5b6577;
+  --text-faint:      #8a92a6;
+  --border:          #e3e7ef;
+  --border-strong:   #cdd3df;
 
-  --text-primary: #1a1a1a;
-  --text-muted: #6b7280;
-  --text-faint: #a8a29e;
+  /* ─── Estado ─── */
+  --error:           #e11d48;
+  --error-bg:        #fef2f2;
+  --success:         #059669;
+  --success-bg:      #ecfdf5;
 
-  --border-subtle: rgba(0, 0, 0, 0.08);
-  --border-focus: rgba(74, 144, 210, 0.5);
-  --divider: rgba(0, 0, 0, 0.06);
+  /* ─── Tokens ─── */
+  --radius:          14px;
+  --radius-sm:       10px;
+  --shadow-sm:       0 1px 2px rgba(15, 23, 41, 0.04);
+  --shadow-md:       0 8px 24px rgba(15, 23, 41, 0.06);
+  --shadow-lg:       0 20px 50px rgba(9, 58, 216, 0.18);
+
+  /* ─── Legacy ─── */
+  --bg-base:         #f4efe6;
+  --bg-card:         #ffffff;
+  --bg-input:        #f8f5f0;
+  --accent:          #4a90d2;
+  --accent-hover:    #3a7fbe;
+  --accent-glow:     rgba(74, 144, 210, 0.08);
+  --accent-border:   rgba(74, 144, 210, 0.2);
+  --accent-ring:     rgba(74, 144, 210, 0.12);
+  --text-primary:    #1a1a1a;
+  --border-subtle:   rgba(0, 0, 0, 0.08);
+  --border-focus:    rgba(74, 144, 210, 0.5);
+  --divider:         rgba(0, 0, 0, 0.06);
+}
+
+/* Reset global: elimina margins por defecto del body y previene scroll horizontal */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
 }
