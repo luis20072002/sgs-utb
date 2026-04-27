@@ -1,7 +1,8 @@
+// src/app/components/sidebar/sidebar.ts
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MenuItem } from '../../../models/edu.models';
- 
+
 @Component({
   selector: 'app-sidebar',
   standalone: true,
@@ -12,25 +13,26 @@ import { MenuItem } from '../../../models/edu.models';
 export class SidebarComponent {
   @Input() activeTab: string = 'dashboard';
   @Output() tabChange = new EventEmitter<string>();
- 
+
+  // Rutas alineadas a los requerimientos:
+  //   /admin/dashboard, /admin/auxiliares, /admin/docentes, etc.
   dashboardItems: MenuItem[] = [
-    { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', path: '/adminPanel' }
+    { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', path: '/admin/dashboard' }
   ];
- 
+
   gestionItems: MenuItem[] = [
-    { id: 'users',    icon: 'group',      label: 'Usuarios', path: '/adminPanel/users'    },
-    { id: 'teachers', icon: 'person_pin', label: 'Docentes', path: '/adminPanel/teachers' },
-    { id: 'courses',  icon: 'menu_book',  label: 'Cursos',   path: '/adminPanel/courses'  },
+    { id: 'auxiliares', icon: 'group',      label: 'Auxiliares', path: '/admin/auxiliares' },
+    { id: 'docentes',   icon: 'person_pin', label: 'Docentes',   path: '/admin/docentes'   },
+    { id: 'cursos',     icon: 'menu_book',  label: 'Cursos',     path: '/admin/cursos'     },
   ];
- 
+
   informesItems: MenuItem[] = [
-    { id: 'reports',   icon: 'description',    label: 'Reportes',                path: '/adminPanel/reports'   },
-    { id: 'av-issues', icon: 'videocam_off',   label: 'Problemas audiovisuales', path: '/adminPanel/av-issues' },
-    { id: 'schedules', icon: 'calendar_month', label: 'Horarios',                path: '/adminPanel/schedules' },
-    { id: 'logs',      icon: 'history',        label: 'Registros',               path: '/adminPanel/logs'      },
+    { id: 'reportes',  icon: 'description',    label: 'Reportes',                path: '/admin/reportes'  },
+    { id: 'av-issues', icon: 'videocam_off',   label: 'Problemas audiovisuales', path: '/admin/av-issues' },
+    { id: 'horarios',  icon: 'calendar_month', label: 'Horarios',                path: '/admin/horarios'  },
+    { id: 'registros', icon: 'history',        label: 'Registros',               path: '/admin/registros' },
   ];
- 
+
   changeTab(id: string): void { this.tabChange.emit(id); }
   isActive(id: string): boolean { return this.activeTab === id; }
 }
- 
