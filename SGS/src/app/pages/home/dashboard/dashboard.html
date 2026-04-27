@@ -1,0 +1,165 @@
+<!-- Loading -->
+<div class="page-loader" *ngIf="isLoading()">
+  <div class="page-loader__spinner"></div>
+  <p>Cargando tu información…</p>
+</div>
+
+<ng-container *ngIf="!isLoading()">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HEADER: saludo                                                -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header class="dash-head">
+    <p class="dash-head__date">
+      <span class="material-icons">calendar_today</span>
+      {{ todayLabel }}
+    </p>
+    <h1 class="dash-head__title">{{ greeting() }}, {{ userName() || 'Auxiliar' }}</h1>
+    <p class="dash-head__sub" *ngIf="hasActiveShift()">
+      Tienes un turno activo. Estos son los detalles de tu recorrido.
+    </p>
+    <p class="dash-head__sub" *ngIf="!hasActiveShift()">
+      No tienes un turno activo en este momento.
+    </p>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- HERO: turno actual                                            -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="hero" *ngIf="hasActiveShift(); else noShift">
+    <div class="hero__main">
+      <div class="hero__badge">
+        <span class="hero__badge-dot"></span>
+        Turno en curso
+      </div>
+      <h2 class="hero__title">{{ turno()?.nombre_turno ?? 'Turno actual' }}</h2>
+      <p class="hero__time">
+        <span class="material-icons">schedule</span>
+        {{ formatHora(turno()?.hora_inicio) }} — {{ formatHora(turno()?.hora_fin) }}
+      </p>
+      <p class="hero__remaining" *ngIf="tiempoRestante()">{{ tiempoRestante() }}</p>
+    </div>
+
+    <div class="hero__meta">
+      <div class="hero__meta-item">
+        <span class="material-icons">apartment</span>
+        <div>
+          <span class="hero__meta-label">Edificio</span>
+          <span class="hero__meta-value">#{{ planilla()?.id_edificio }}</span>
+        </div>
+      </div>
+      <div class="hero__meta-item">
+        <span class="material-icons">stairs</span>
+        <div>
+          <span class="hero__meta-label">Pisos asignados</span>
+          <span class="hero__meta-value">
+            {{ planilla()?.piso_1 }}<ng-container *ngIf="planilla()?.piso_2">, {{ planilla()?.piso_2 }}</ng-container><ng-container *ngIf="planilla()?.piso_3">, {{ planilla()?.piso_3 }}</ng-container>
+          </span>
+        </div>
+      </div>
+      <a routerLink="/home/planilla" class="hero__cta">
+        <span class="material-icons">arrow_forward</span>
+        Ir a mi planilla
+      </a>
+    </div>
+  </section>
+
+  <!-- Estado vacío: sin planilla activa -->
+  <ng-template #noShift>
+    <section class="empty-shift">
+      <span class="material-icons empty-shift__icon">event_available</span>
+      <h2 class="empty-shift__title">Sin turno activo</h2>
+      <p class="empty-shift__sub">
+        Cuando inicie tu próximo turno, aquí verás los detalles del recorrido.
+        Mientras tanto puedes revisar tu horario.
+      </p>
+      <a routerLink="/home/horario" class="empty-shift__cta">
+        <span class="material-icons">calendar_month</span>
+        Ver mi horario
+      </a>
+    </section>
+  </ng-template>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- KPIs                                                          -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="kpis">
+    <a routerLink="/home/planilla" class="kpi" [class.kpi--disabled]="!hasActiveShift()">
+      <div class="kpi__icon kpi__icon--blue">
+        <span class="material-icons">assignment</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Aulas en mi recorrido</span>
+        <span class="kpi__value">{{ stats().totalAulas }}</span>
+      </div>
+    </a>
+
+    <a routerLink="/home/novedades" class="kpi">
+      <div class="kpi__icon kpi__icon--amber">
+        <span class="material-icons">notifications_none</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Novedades de hoy</span>
+        <span class="kpi__value">{{ stats().novedadesHoy }}</span>
+      </div>
+    </a>
+
+    <a routerLink="/home/solicitudes" class="kpi">
+      <div class="kpi__icon kpi__icon--rose">
+        <span class="material-icons">help_outline</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Solicitudes abiertas</span>
+        <span class="kpi__value">{{ stats().solicitudesAbiertas }}</span>
+      </div>
+    </a>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- ACCESOS RÁPIDOS                                               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="quick">
+    <h3 class="section-title">Accesos rápidos</h3>
+    <div class="quick__grid">
+      <a routerLink="/home/planilla" class="quick__card">
+        <span class="material-icons quick__card-icon">assignment</span>
+        <span class="quick__card-title">Mi planilla</span>
+        <span class="quick__card-sub">Aulas del recorrido</span>
+      </a>
+      <a routerLink="/home/horario" class="quick__card">
+        <span class="material-icons quick__card-icon">calendar_month</span>
+        <span class="quick__card-title">Mi horario</span>
+        <span class="quick__card-sub">Vista semanal</span>
+      </a>
+      <a routerLink="/home/novedades" class="quick__card">
+        <span class="material-icons quick__card-icon">notifications_none</span>
+        <span class="quick__card-title">Novedades</span>
+        <span class="quick__card-sub">Reportes informativos</span>
+      </a>
+      <a routerLink="/home/solicitudes" class="quick__card">
+        <span class="material-icons quick__card-icon">help_outline</span>
+        <span class="quick__card-title">Solicitudes</span>
+        <span class="quick__card-sub">Pendientes y resueltas</span>
+      </a>
+      <a routerLink="/home/perfil" class="quick__card">
+        <span class="material-icons quick__card-icon">person_outline</span>
+        <span class="quick__card-title">Mi perfil</span>
+        <span class="quick__card-sub">Datos y contraseña</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- NOTIFICACIONES                                                -->
+  <!-- TODO: cuando exista endpoint /home/notificaciones lo enchufamos.
+       Por ahora mostramos un placeholder informativo.              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="notif">
+    <h3 class="section-title">Notificaciones</h3>
+    <div class="notif__empty">
+      <span class="material-icons">notifications_off</span>
+      <p>No tienes notificaciones nuevas.</p>
+    </div>
+  </section>
+
+</ng-container>

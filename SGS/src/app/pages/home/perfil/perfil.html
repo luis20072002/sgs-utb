@@ -1,0 +1,171 @@
+<header class="page-head">
+  <div>
+    <h1 class="page-head__title">Mi perfil</h1>
+    <p class="page-head__sub">Visualiza y edita tu información personal</p>
+  </div>
+</header>
+
+<div class="profile-grid">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Card 1: Información del auxiliar                              -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="card">
+    <header class="card__head">
+      <span class="material-icons card__icon">person</span>
+      <h2 class="card__title">Información personal</h2>
+    </header>
+
+    <div class="profile-hero">
+      <div class="avatar">{{ userInitials }}</div>
+      <div>
+        <h3 class="profile-hero__name">{{ user()?.nombre || '—' }}</h3>
+        <p class="profile-hero__role">
+          <span class="material-icons">verified_user</span>
+          Auxiliar
+        </p>
+      </div>
+    </div>
+
+    <dl class="info-list">
+
+      <!-- Nombre (editable) -->
+      <div class="info-row">
+        <dt>Nombre completo</dt>
+        <dd *ngIf="!isEditingName()">
+          <span>{{ user()?.nombre || '—' }}</span>
+          <button class="link-btn" (click)="startEditName()">
+            <span class="material-icons">edit</span>
+            Editar
+          </button>
+        </dd>
+        <dd *ngIf="isEditingName()" class="info-row__edit">
+          <input
+            type="text"
+            class="inline-input"
+            [value]="editedName()"
+            (input)="editedName.set($any($event.target).value)">
+          <div class="info-row__edit-actions">
+            <button class="btn-ghost btn-ghost--sm" (click)="cancelEditName()">Cancelar</button>
+            <button class="btn-primary btn-primary--sm" (click)="saveName()">Guardar</button>
+          </div>
+        </dd>
+      </div>
+
+      <!-- Correo (solo lectura) -->
+      <div class="info-row">
+        <dt>Correo electrónico</dt>
+        <dd>
+          <span>{{ user()?.correo || '—' }}</span>
+          <span class="lock-tag">
+            <span class="material-icons">lock</span>
+            Solo el administrador
+          </span>
+        </dd>
+      </div>
+
+      <!-- Rol (solo lectura) -->
+      <div class="info-row">
+        <dt>Rol</dt>
+        <dd>
+          <span>{{ user()?.rol?.nombre_rol || 'Auxiliar' }}</span>
+          <span class="lock-tag">
+            <span class="material-icons">lock</span>
+            Solo el administrador
+          </span>
+        </dd>
+      </div>
+
+      <!-- Estado -->
+      <div class="info-row">
+        <dt>Estado</dt>
+        <dd>
+          <span class="state-pill" [class.state-pill--inactive]="!user()?.estado">
+            <span class="state-pill__dot"></span>
+            {{ user()?.estado ? 'Activo' : 'Inactivo' }}
+          </span>
+        </dd>
+      </div>
+
+    </dl>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- Card 2: Cambiar contraseña                                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <section class="card">
+    <header class="card__head">
+      <span class="material-icons card__icon">lock</span>
+      <h2 class="card__title">Cambiar contraseña</h2>
+    </header>
+
+    <form [formGroup]="passForm" (ngSubmit)="submitChangePassword()" class="form" autocomplete="off">
+
+      <!-- Actual -->
+      <div class="field" [class.field--error]="hasError('current_password')">
+        <label>Contraseña actual</label>
+        <div class="field__wrap">
+          <span class="material-icons field__icon">lock_outline</span>
+          <input
+            [type]="showCurrent() ? 'text' : 'password'"
+            class="field__input"
+            formControlName="current_password">
+          <button type="button" class="field__eye" (click)="toggleCurrent()" tabindex="-1">
+            <span class="material-icons">{{ showCurrent() ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        <span class="field__error" *ngIf="hasError('current_password')">Campo requerido</span>
+      </div>
+
+      <!-- Nueva -->
+      <div class="field" [class.field--error]="hasError('new_password')">
+        <label>Nueva contraseña</label>
+        <div class="field__wrap">
+          <span class="material-icons field__icon">vpn_key</span>
+          <input
+            [type]="showNew() ? 'text' : 'password'"
+            class="field__input"
+            formControlName="new_password">
+          <button type="button" class="field__eye" (click)="toggleNew()" tabindex="-1">
+            <span class="material-icons">{{ showNew() ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        <span class="field__error" *ngIf="hasError('new_password')">Mínimo 6 caracteres</span>
+      </div>
+
+      <!-- Confirmar -->
+      <div class="field"
+           [class.field--error]="passForm.hasError('mismatch') && passForm.get('confirm_password')?.touched">
+        <label>Confirmar nueva contraseña</label>
+        <div class="field__wrap">
+          <span class="material-icons field__icon">vpn_key</span>
+          <input
+            [type]="showConfirm() ? 'text' : 'password'"
+            class="field__input"
+            formControlName="confirm_password">
+          <button type="button" class="field__eye" (click)="toggleConfirm()" tabindex="-1">
+            <span class="material-icons">{{ showConfirm() ? 'visibility_off' : 'visibility' }}</span>
+          </button>
+        </div>
+        <span class="field__error"
+              *ngIf="passForm.hasError('mismatch') && passForm.get('confirm_password')?.touched">
+          Las contraseñas no coinciden
+        </span>
+      </div>
+
+      <!-- Mensajes -->
+      <div class="alert alert--error" *ngIf="passError()">
+        <span class="material-icons">error</span> {{ passError() }}
+      </div>
+      <div class="alert alert--success" *ngIf="passSuccess()">
+        <span class="material-icons">check_circle</span> {{ passSuccess() }}
+      </div>
+
+      <button type="submit" class="btn-primary" [disabled]="isSubmitting()">
+        <span class="spinner" *ngIf="isSubmitting()"></span>
+        <span *ngIf="!isSubmitting()">Actualizar contraseña</span>
+      </button>
+    </form>
+  </section>
+
+</div>
