@@ -1,0 +1,185 @@
+<!-- src/app/pages/admin-panel/dashboard/dashboard.html -->
+
+<!-- Saludo -->
+<section class="welcome">
+  <div class="welcome__text">
+    <h2 class="welcome__title">Resumen del sistema</h2>
+    <p class="welcome__sub">
+      Vista general de la actividad y estado actual del SGS.
+    </p>
+  </div>
+  <button
+    class="welcome__refresh"
+    type="button"
+    (click)="refrescar()"
+    [disabled]="loading()"
+    aria-label="Actualizar datos">
+    <span class="material-icons" [class.spinning]="loading()">refresh</span>
+    <span class="welcome__refresh-text">Actualizar</span>
+  </button>
+</section>
+
+<!-- ──────────────────────────────────────────────────────────────── -->
+<!-- KPI Cards (clickeables → cada una navega a su subpantalla)     -->
+<!-- ──────────────────────────────────────────────────────────────── -->
+<section class="kpi-grid" aria-label="Indicadores principales">
+  <p class="section-hint">
+    <span class="material-icons">touch_app</span>
+    Haz clic en una tarjeta para ver el detalle de esa sección.
+  </p>
+
+  <div class="kpis">
+    <!-- KPI 1: Auxiliares activos -->
+    <a routerLink="/admin/auxiliares" class="kpi kpi--blue">
+      <div class="kpi__icon">
+        <span class="material-icons">group</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Auxiliares activos</span>
+        <span class="kpi__value">{{ stats().auxiliaresActivos }}</span>
+        <span class="kpi__cta">
+          Ver detalle
+          <span class="material-icons">arrow_forward</span>
+        </span>
+      </div>
+    </a>
+
+    <!-- KPI 2: Docentes registrados -->
+    <a routerLink="/admin/docentes" class="kpi kpi--green">
+      <div class="kpi__icon">
+        <span class="material-icons">person_pin</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Docentes registrados</span>
+        <span class="kpi__value">{{ stats().docentesRegistrados }}</span>
+        <span class="kpi__cta">
+          Ver detalle
+          <span class="material-icons">arrow_forward</span>
+        </span>
+      </div>
+    </a>
+
+    <!-- KPI 3: Planillas generadas -->
+    <a routerLink="/admin/planillas" class="kpi kpi--amber">
+      <div class="kpi__icon">
+        <span class="material-icons">assignment</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Planillas generadas</span>
+        <span class="kpi__value">{{ stats().planillasGeneradas }}</span>
+        <span class="kpi__cta">
+          Ver detalle
+          <span class="material-icons">arrow_forward</span>
+        </span>
+      </div>
+    </a>
+
+    <!-- KPI 4: Reportes del período -->
+    <a routerLink="/admin/registros" class="kpi kpi--purple">
+      <div class="kpi__icon">
+        <span class="material-icons">analytics</span>
+      </div>
+      <div class="kpi__body">
+        <span class="kpi__label">Reportes del período</span>
+        <span class="kpi__value">{{ stats().reportesPeriodo }}</span>
+        <span class="kpi__cta">
+          Ver detalle
+          <span class="material-icons">arrow_forward</span>
+        </span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- ──────────────────────────────────────────────────────────────── -->
+<!-- Alertas del sistema                                                -->
+<!-- ──────────────────────────────────────────────────────────────── -->
+<section class="alerts">
+  <div class="alerts__head">
+    <div>
+      <h3 class="alerts__title">
+        <span class="material-icons">notifications_active</span>
+        Alertas del sistema
+      </h3>
+      <p class="alerts__sub">
+        Asuntos pendientes que requieren tu atención.
+      </p>
+    </div>
+    <span class="alerts__badge" *ngIf="alertas().length > 0 && alertas()[0].id !== 'all-clear'">
+      {{ alertas().length }}
+    </span>
+  </div>
+
+  <!-- Loading skeleton -->
+  <div class="alerts__skeleton" *ngIf="loading()">
+    <div class="skeleton-row" *ngFor="let _ of [1,2,3]"></div>
+  </div>
+
+  <!-- Lista de alertas -->
+  <div class="alerts__list" *ngIf="!loading() && alertas().length > 0">
+    <ng-container *ngFor="let a of alertas()">
+
+      <!-- Estado limpio -->
+      <div
+        *ngIf="a.id === 'all-clear'; else alertaItem"
+        class="alert alert--clear">
+        <div class="alert__icon alert__icon--clear">
+          <span class="material-icons">check_circle</span>
+        </div>
+        <div class="alert__body">
+          <span class="alert__title">{{ a.titulo }}</span>
+          <span class="alert__desc">{{ a.descripcion }}</span>
+        </div>
+      </div>
+
+      <!-- Alerta con ruta -->
+      <ng-template #alertaItem>
+        <a
+          *ngIf="a.ruta; else alertaSinRuta"
+          [routerLink]="a.ruta"
+          class="alert"
+          [class.alert--high]="a.severidad === 'alta'"
+          [class.alert--med]="a.severidad === 'media'"
+          [class.alert--low]="a.severidad === 'baja'">
+          <div class="alert__icon">
+            <span class="material-icons">{{ iconoAlerta(a.tipo) }}</span>
+          </div>
+          <div class="alert__body">
+            <span class="alert__title">{{ a.titulo }}</span>
+            <span class="alert__desc">{{ a.descripcion }}</span>
+          </div>
+          <span class="material-icons alert__chevron">chevron_right</span>
+        </a>
+      </ng-template>
+
+      <ng-template #alertaSinRuta>
+        <div
+          class="alert"
+          [class.alert--high]="a.severidad === 'alta'"
+          [class.alert--med]="a.severidad === 'media'"
+          [class.alert--low]="a.severidad === 'baja'">
+          <div class="alert__icon">
+            <span class="material-icons">{{ iconoAlerta(a.tipo) }}</span>
+          </div>
+          <div class="alert__body">
+            <span class="alert__title">{{ a.titulo }}</span>
+            <span class="alert__desc">{{ a.descripcion }}</span>
+          </div>
+        </div>
+      </ng-template>
+
+    </ng-container>
+  </div>
+
+  <!-- Sin alertas (caso fallback total) -->
+  <div class="alerts__empty" *ngIf="!loading() && alertas().length === 0">
+    <span class="material-icons">inbox</span>
+    <p>No hay alertas en este momento.</p>
+  </div>
+</section>
+
+<!-- Error global -->
+<div class="error-banner" *ngIf="errorMsg()">
+  <span class="material-icons">error_outline</span>
+  <span>{{ errorMsg() }}</span>
+</div>

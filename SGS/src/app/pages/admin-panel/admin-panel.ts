@@ -1,152 +1,104 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+// src/app/pages/admin-panel/admin-panel.ts
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { forkJoin, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { SidebarComponent }     from '../../components/sidebar/sidebar';
-import { HeaderComponent }       from '../../components/header/header';
-import { KpiCardsComponent }     from '../../components/kpi-cards/kpi-cards';
-import { ActivityFeedComponent } from '../../components/activity-feed/activity-feed';
-import { ChartsComponent }       from '../../components/charts/charts';
-import { UsersComponent }        from './users/users';
-import { ReportsComponent }      from './reports/reports';
-import { TeachersComponent }     from './teachers/teachers';
-import { CoursesComponent }      from './courses/courses';
-import { SchedulesComponent }    from './schedules/schedules';
-import { LogsComponent }         from './logs/logs';
-import { User, KPIStats, ActivityLog } from '../../../models/edu.models';
-import { AuthService }           from '../../services/auth';
-import { ReportService, Report } from '../../services/report';
-import { environment } from '../../../environments/environment';
+import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 
+import { SidebarComponent }     from '../../components/sidebar/sidebar';
+import { HeaderAdminComponent, HeaderUser } from '../../components/header-admin/header-admin';
+import { AuthService }          from '../../services/auth';
+
+/**
+ * Shell del Panel Admin.
+ *
+ * - Renderiza sidebar + header + <router-outlet>.
+ * - El sidebar es off-canvas en móvil/tablet y fijo en desktop (≥1024px).
+ * - El título del header se calcula a partir de la URL activa.
+ * - Las subpantallas se montan por el router (no por *ngIf).
+ *
+ * Lectura del usuario:
+ *   AuthService.getUserData() trae el UserProfile guardado en localStorage
+ *   tras el login (campo USER_KEY). Es síncrono y no hace HTTP.
+ */
 @Component({
   selector: 'app-admin-panel',
   standalone: true,
   imports: [
     CommonModule,
-    SidebarComponent, HeaderComponent,
-    KpiCardsComponent, ActivityFeedComponent, ChartsComponent,
-    UsersComponent, ReportsComponent,
-    TeachersComponent, CoursesComponent, SchedulesComponent, LogsComponent,
+    RouterOutlet,
+    SidebarComponent,
+    HeaderAdminComponent,
   ],
   templateUrl: 'admin-panel.html',
-  styleUrls: ['admin-panel.css']
+  styleUrls: ['admin-panel.css'],
 })
 export class AdminPanelComponent implements OnInit {
-  isLoading  = true;
-  activeTab  = 'dashboard';
-  showCharts = false;
+  private auth   = inject(AuthService);
+  private router = inject(Router);
 
-  stats: KPIStats = {
-    totalUsers:                  0,
-    totalDocentes:               0,
-    totalAuxiliares:             0,
-    totalReports:                0,
-    totalProyectoresFallando:    0,
-    totalProfesoresNoAsistieron: 0
-  };
+  // ── Estado ─────────────────────────────────────────────────────
+  isLoading       = signal(true);
+  sidebarOpen     = signal(false);
+  currentRoute    = signal<string>('/admin/dashboard');
+  currentUser     = signal<HeaderUser | null>(null);
 
-  currentUser: User = {
-    id: '',
-    name: 'Administrador',
-    email: '',
-    role: 'administrador'
-  };
-
-  readonly mockLogs: ActivityLog[] = [
-    { id: '1', user: 'Ana Martínez',  action: 'creó un nuevo curso: Cálculo I',          timestamp: 'Hace 5 min',  type: 'create' },
-    { id: '2', user: 'Juan Pérez',    action: 'actualizó el horario del Aula 302',        timestamp: 'Hace 12 min', type: 'update' },
-    { id: '3', user: 'Roberto Gómez', action: 'fue asignado al Turno Noche',              timestamp: 'Hace 45 min', type: 'assign' },
-    { id: '4', user: 'Admin',         action: 'eliminó un registro de planilla antiguo',  timestamp: 'Hace 2h',     type: 'delete' },
-  ];
-
-  constructor(
-    private cdr: ChangeDetectorRef,
-    private auth: AuthService,
-    private reportService: ReportService,
-    private http: HttpClient,
-    private router: Router
-  ) {}
+  // Título derivado de la ruta
+  readonly pageTitle = computed(() => {
+    const titles: Record<string, string> = {
+      '/admin/dashboard':   'Panel de Administrador',
+      '/admin/auxiliares':  'Gestión de Auxiliares',
+      '/admin/edificios':   'Gestión de Edificios',
+      '/admin/planillas':   'Gestión de Planillas',
+      '/admin/turnos':      'Gestión de Turnos',
+      '/admin/docentes':    'Gestión de Docentes',
+      '/admin/horarios':    'Asignación de Horarios',
+      '/admin/novedades':   'Novedades Reportadas',
+      '/admin/solicitudes': 'Solicitudes Reportadas',
+      '/admin/registros':   'Registros de Aula',
+      '/admin/reportes':    'Reportes y Exportación',
+    };
+    return titles[this.currentRoute()] ?? 'Panel de Administrador';
+  });
 
   ngOnInit(): void {
+    // 1) Cargar usuario actual desde localStorage
     const userData = this.auth.getUserData();
+
     if (userData) {
-      this.currentUser = {
-        id:    String(userData.id_usuario),
-        name:  userData.nombre,
-        email: userData.correo || '',
-        role:  'administrador'
-      };
+      this.currentUser.set({
+        nombre: userData.nombre ?? 'Administrador',
+        correo: userData.correo ?? '',
+        rol:    userData.rol?.nombre_rol ?? 'Administrador',
+      });
+    } else {
+      // Fallback: si por algún motivo no hay datos en localStorage
+      // (p.ej. el usuario abrió la app con un token válido pero sin user_data),
+      // mostramos un placeholder y dejamos que el guard maneje la sesión.
+      this.currentUser.set({
+        nombre: 'Administrador',
+        correo: '',
+        rol:    'Administrador',
+      });
     }
 
-    forkJoin({
-      usuarios:  this.http.get<any[]>(`${environment.apiUrl}/usuarios/`).pipe(catchError(() => of([]))),
-      docentes:  this.http.get<any[]>(`${environment.apiUrl}/docentes/`).pipe(catchError(() => of([]))),
-      novedades: this.http.get<any[]>(`${environment.apiUrl}/novedades/`).pipe(catchError(() => of([])))
-    }).subscribe({
-      next: ({ usuarios, docentes, novedades }) => {
-        const reports = this.reportService.getReports();
-        const auxiliares = usuarios.filter((u: any) => u.rol?.rol_id === 2);
-        this.stats = {
-          totalUsers:                  usuarios.length,
-          totalDocentes:               docentes.length,
-          totalAuxiliares:             auxiliares.length,
-          totalReports:                novedades.length + reports.length,
-          totalProyectoresFallando:    reports.filter((r: Report) => !r.proyectorFunciona).length,
-          totalProfesoresNoAsistieron: reports.filter((r: Report) => !r.profesorAsistio).length
-        };
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      },
-      error: () => {
-        const reports = this.reportService.getReports();
-        this.stats = {
-          totalUsers:                  0,
-          totalDocentes:               0,
-          totalAuxiliares:             0,
-          totalReports:                reports.length,
-          totalProyectoresFallando:    reports.filter((r: Report) => !r.proyectorFunciona).length,
-          totalProfesoresNoAsistieron: reports.filter((r: Report) => !r.profesorAsistio).length
-        };
-        this.isLoading = false;
-        this.cdr.detectChanges();
-      }
-    });
+    this.isLoading.set(false);
+
+    // 2) Trackear ruta para el título dinámico del header
+    this.currentRoute.set(this.router.url);
+    this.router.events
+      .pipe(filter(e => e instanceof NavigationEnd))
+      .subscribe((e: any) => this.currentRoute.set(e.urlAfterRedirects));
   }
 
-  get currentDateTime(): string {
-    const d = new Date();
-    return `${d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
+  toggleSidebar(): void {
+    this.sidebarOpen.update(v => !v);
   }
 
-  get welcomeTitle(): string {
-    const titles: Record<string, string> = {
-      dashboard:   'Panel de Administrador',
-      charts:      'Panel de Administrador',
-      auxiliares:       'Gestión de Auxiliares',
-      docentes:    'Gestión de Docentes',
-      cursos:     'Gestión de Cursos',
-      horarios:   'Horarios de Auxiliares',
-      registros:        'Registros de Aula',
-      reportes:     'Reportes de Auxiliares',
-      'av-issues': 'Problemas Audiovisuales',
-    };
-    return titles[this.activeTab] ?? 'Panel de Administrador';
-  }
-
-  onTabChange(tab: string): void {
-    this.activeTab = tab;
-    this.showCharts = false;
-  }
-
-  onKpiClick(): void {
-    this.showCharts = true;
-    this.activeTab  = 'charts';
+  closeSidebar(): void {
+    this.sidebarOpen.set(false);
   }
 
   onLogout(): void {
-    this.auth.logout();
-    this.router.navigate(['/login']);
+    this.auth.logoutAndRedirect();
   }
 }

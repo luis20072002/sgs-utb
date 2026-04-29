@@ -1,0 +1,51 @@
+<!-- src/app/components/header-admin/header-admin.html -->
+<header class="hdr">
+  <div class="hdr__left">
+    <button
+      class="hdr__menu-btn"
+      type="button"
+      (click)="toggleSidebar.emit()"
+      aria-label="Abrir menú">
+      <span class="material-icons">menu</span>
+    </button>
+
+    <div class="hdr__title-block">
+      <h1 class="hdr__title">{{ pageTitle }}</h1>
+      <p class="hdr__date">
+        <span class="material-icons hdr__date-icon">calendar_today</span>
+        <span class="hdr__date-text">{{ currentDate }}</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="hdr__right" *ngIf="user">
+    <div class="hdr__user" (click)="toggleMenu()" tabindex="0">
+      <div class="hdr__avatar">{{ userInitials }}</div>
+      <div class="hdr__user-info">
+        <span class="hdr__user-name">{{ user.nombre }}</span>
+        <span class="hdr__user-rol">{{ user.rol }}</span>
+      </div>
+      <span class="material-icons hdr__caret"
+        [class.hdr__caret--open]="menuOpen()">expand_more</span>
+    </div>
+
+    <!-- Dropdown -->
+    <div class="hdr__dropdown" *ngIf="menuOpen()" (clickOutside)="closeMenu()">
+      <div class="hdr__dropdown-header">
+        <div class="hdr__avatar hdr__avatar--lg">{{ userInitials }}</div>
+        <div class="hdr__dropdown-info">
+          <span class="hdr__dropdown-name">{{ user.nombre }}</span>
+          <span class="hdr__dropdown-mail">{{ user.correo }}</span>
+        </div>
+      </div>
+      <div class="hdr__dropdown-divider"></div>
+      <button class="hdr__dropdown-item hdr__dropdown-item--danger" (click)="onLogout()">
+        <span class="material-icons">logout</span>
+        <span>Cerrar sesión</span>
+      </button>
+    </div>
+
+    <!-- Backdrop para cerrar al clickear fuera -->
+    <div class="hdr__backdrop" *ngIf="menuOpen()" (click)="closeMenu()"></div>
+  </div>
+</header>
