@@ -3,5 +3,5 @@
 // Cambia esta URL por la del servidor real cuando se despliegue
 export const environment = {
   production: true,
-  apiUrl: 'https://api.sgs.com'
+  apiUrl: 'https://bootcamp-backend-qcxk.onrender.com'
 };
