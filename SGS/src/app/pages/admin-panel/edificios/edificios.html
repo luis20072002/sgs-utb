@@ -1,11 +1,501 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/edificios/edificios.html -->
+
+<!-- Header de la página -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Edificios y aulas</h2>
+    <p class="page-head__sub">
+      Gestiona la infraestructura física: edificios, sus pisos y aulas.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
-  </div>
+  <button type="button" class="btn-primary" (click)="openCreateEdificio()">
+    <span class="material-icons">add</span>
+    <span>Nuevo edificio</span>
+  </button>
 </section>
+
+<!-- Loading global -->
+<div class="state-card state-card--loading" *ngIf="loadingEd()">
+  <div class="spinner-lg"></div>
+  <p>Cargando edificios…</p>
+</div>
+
+<!-- Error global -->
+<div class="state-card state-card--error" *ngIf="errorEd() && !loadingEd()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorEd() }}</p>
+  <button class="btn-ghost" (click)="cargarEdificios()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<!-- Empty global -->
+<div class="state-card state-card--empty" *ngIf="!loadingEd() && !errorEd() && edificios().length === 0">
+  <span class="material-icons">apartment</span>
+  <h3>No hay edificios registrados</h3>
+  <p>Crea el primer edificio para empezar a definir aulas y planillas.</p>
+  <button class="btn-primary" (click)="openCreateEdificio()">
+    <span class="material-icons">add</span>
+    <span>Crear primer edificio</span>
+  </button>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Layout master-detail                                            -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<div class="md-layout" *ngIf="!loadingEd() && !errorEd() && edificios().length > 0">
+
+  <!-- ─── MASTER: lista de edificios ─── -->
+  <aside class="md-master">
+    <div class="md-master__head">
+      <div class="search-box">
+        <span class="material-icons">search</span>
+        <input
+          type="search"
+          class="search-input"
+          placeholder="Buscar edificio…"
+          [value]="searchTerm()"
+          (input)="searchTerm.set($any($event.target).value)">
+      </div>
+      <span class="counter">{{ filteredEdificios().length }}</span>
+    </div>
+
+    <div class="md-master__list">
+      <article
+        *ngFor="let e of filteredEdificios()"
+        class="ed-row"
+        [class.ed-row--active]="selectedId() === e.id_edificio"
+        [class.ed-row--inactive]="!e.estado"
+        (click)="selectEdificio(e.id_edificio)">
+
+        <div class="ed-row__icon">
+          <span class="material-icons">apartment</span>
+        </div>
+
+        <div class="ed-row__body">
+          <div class="ed-row__title-line">
+            <span class="ed-row__title">{{ e.nombre }}</span>
+            <span class="ed-row__code">{{ e.codigo }}</span>
+          </div>
+          <div class="ed-row__meta">
+            <span><span class="material-icons">stairs</span> {{ e.cantidad_pisos }} pisos</span>
+            <span class="badge" *ngIf="!e.estado">Inactivo</span>
+          </div>
+        </div>
+
+        <span class="material-icons ed-row__chevron">chevron_right</span>
+      </article>
+
+      <div class="md-master__empty" *ngIf="filteredEdificios().length === 0">
+        <span class="material-icons">search_off</span>
+        <p>Sin coincidencias</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── DETAIL: aulas del edificio seleccionado ─── -->
+  <section class="md-detail" *ngIf="selected() as ed">
+
+    <!-- Cabecera del detalle -->
+    <header class="detail-head">
+      <div class="detail-head__main">
+        <div class="detail-head__icon">
+          <span class="material-icons">apartment</span>
+        </div>
+        <div>
+          <h3 class="detail-head__title">
+            {{ ed.nombre }}
+            <span class="detail-head__pill">{{ ed.codigo }}</span>
+            <span class="detail-head__pill detail-head__pill--off" *ngIf="!ed.estado">Inactivo</span>
+          </h3>
+          <p class="detail-head__meta">
+            {{ ed.cantidad_pisos }} pisos · {{ aulas().length }} aulas registradas
+          </p>
+        </div>
+      </div>
+
+      <div class="detail-head__actions">
+        <button class="btn-ghost btn-sm" (click)="openEditEdificio(ed)">
+          <span class="material-icons">edit</span>
+          <span class="hide-sm">Editar</span>
+        </button>
+        <button class="btn-ghost btn-ghost--danger btn-sm" (click)="requestDeleteEdificio(ed)">
+          <span class="material-icons">delete_outline</span>
+          <span class="hide-sm">Eliminar</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Toolbar de aulas -->
+    <div class="aulas-toolbar">
+      <div class="aulas-toolbar__filters">
+        <label class="filter-label">Piso:</label>
+        <div class="chip-group">
+          <button
+            type="button"
+            class="chip"
+            [class.chip--active]="filtroPiso() === 'todos'"
+            (click)="filtroPiso.set('todos')">
+            Todos
+          </button>
+          <button
+            type="button"
+            *ngFor="let p of pisosDisponibles()"
+            class="chip"
+            [class.chip--active]="filtroPiso() === p"
+            (click)="filtroPiso.set(p)">
+            {{ p }}
+          </button>
+        </div>
+      </div>
+
+      <div class="aulas-toolbar__actions">
+        <button class="btn-ghost btn-sm" (click)="openBulkModal()">
+          <span class="material-icons">upload_file</span>
+          <span>Carga masiva</span>
+        </button>
+        <button class="btn-primary btn-sm" (click)="openCreateAula()">
+          <span class="material-icons">add</span>
+          <span>Nueva aula</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de aulas -->
+    <div class="aulas-loading" *ngIf="loadingAul()">
+      <div class="spinner-lg"></div>
+      <p>Cargando aulas…</p>
+    </div>
+
+    <div class="aulas-empty" *ngIf="!loadingAul() && filteredAulas().length === 0">
+      <span class="material-icons">meeting_room</span>
+      <h4>{{ aulas().length === 0 ? 'Aún no hay aulas en este edificio' : 'No hay aulas en este piso' }}</h4>
+      <p>{{ aulas().length === 0 ? 'Agrega aulas manualmente o sube un archivo Excel con la lista completa.' : 'Cambia el filtro para ver otros pisos.' }}</p>
+      <div class="aulas-empty__actions" *ngIf="aulas().length === 0">
+        <button class="btn-primary btn-sm" (click)="openCreateAula()">
+          <span class="material-icons">add</span> Crear aula
+        </button>
+        <button class="btn-ghost btn-sm" (click)="openBulkModal()">
+          <span class="material-icons">upload_file</span> Subir Excel
+        </button>
+      </div>
+    </div>
+
+    <div class="aulas-grid" *ngIf="!loadingAul() && filteredAulas().length > 0">
+      <article *ngFor="let a of filteredAulas()" class="aula-card">
+        <div class="aula-card__head">
+          <span class="aula-card__code">{{ a.codigo }}</span>
+          <span class="aula-card__piso">P{{ a.piso }}</span>
+        </div>
+        <div class="aula-card__body">
+          <h5 class="aula-card__name" *ngIf="a.nombre_aula">{{ a.nombre_aula }}</h5>
+          <p class="aula-card__cap">
+            <span class="material-icons">groups</span>
+            {{ a.capacidad }} personas
+          </p>
+        </div>
+        <div class="aula-card__actions">
+          <button class="btn-icon" (click)="openEditAula(a)" title="Editar">
+            <span class="material-icons">edit</span>
+          </button>
+          <button class="btn-icon btn-icon--danger" (click)="requestDeleteAula(a)" title="Eliminar">
+            <span class="material-icons">delete_outline</span>
+          </button>
+        </div>
+      </article>
+    </div>
+
+  </section>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Modal: crear/editar edificio                                    -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showEdModal()" (click)="closeEdModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">{{ editingEdificio() ? 'edit' : 'apartment' }}</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">{{ editingEdificio() ? 'Editar edificio' : 'Nuevo edificio' }}</h3>
+        <p class="modal-head__sub">Define el código, nombre y cantidad de pisos.</p>
+      </div>
+      <button class="modal-close" (click)="closeEdModal()" [disabled]="savingEd()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="edForm" (ngSubmit)="saveEdificio()" class="modal-body">
+      <div class="form-group" [class.form-group--error]="edFieldHasError('nombre')">
+        <label class="form-label"><span class="material-icons">title</span>Nombre</label>
+        <input type="text" class="form-input" placeholder="Ej: Edificio Central" formControlName="nombre" autocomplete="off">
+        <span class="form-error" *ngIf="edFieldHasError('nombre')">
+          <span class="material-icons">error_outline</span> Campo requerido
+        </span>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group" [class.form-group--error]="edFieldHasError('codigo')">
+          <label class="form-label"><span class="material-icons">qr_code</span>Código</label>
+          <input type="text" class="form-input" placeholder="A2" formControlName="codigo" maxlength="2" style="text-transform:uppercase">
+          <span class="form-hint">Formato: A1 a A9</span>
+          <span class="form-error" *ngIf="edFieldHasError('codigo')">
+            <span class="material-icons">error_outline</span> Formato inválido
+          </span>
+        </div>
+
+        <div class="form-group" [class.form-group--error]="edFieldHasError('cantidad_pisos')">
+          <label class="form-label"><span class="material-icons">stairs</span>Cantidad de pisos</label>
+          <input type="number" class="form-input" min="1" max="20" formControlName="cantidad_pisos">
+          <span class="form-error" *ngIf="edFieldHasError('cantidad_pisos')">
+            <span class="material-icons">error_outline</span> Entre 1 y 20
+          </span>
+        </div>
+      </div>
+
+      <div class="form-warning form-warning--error" *ngIf="saveEdError()">
+        <span class="material-icons">error</span> {{ saveEdError() }}
+      </div>
+    </form>
+
+    <footer class="modal-foot">
+      <button class="btn-ghost" (click)="closeEdModal()" [disabled]="savingEd()">Cancelar</button>
+      <button class="btn-primary" (click)="saveEdificio()" [disabled]="savingEd()">
+        <span class="spinner-sm" *ngIf="savingEd()"></span>
+        <span class="material-icons" *ngIf="!savingEd()">{{ editingEdificio() ? 'save' : 'check' }}</span>
+        <span>{{ savingEd() ? 'Guardando…' : (editingEdificio() ? 'Guardar' : 'Crear edificio') }}</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Modal: crear/editar aula                                        -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showAulaModal()" (click)="closeAulaModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">{{ editingAula() ? 'edit' : 'meeting_room' }}</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">{{ editingAula() ? 'Editar aula' : 'Nueva aula' }}</h3>
+        <p class="modal-head__sub">{{ selected()?.nombre }} · Edificio {{ selected()?.codigo }}</p>
+      </div>
+      <button class="modal-close" (click)="closeAulaModal()" [disabled]="savingAula()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="aulaForm" (ngSubmit)="saveAula()" class="modal-body">
+      <div class="form-row">
+        <div class="form-group" [class.form-group--error]="aulaFieldHasError('piso')">
+          <label class="form-label"><span class="material-icons">stairs</span>Piso</label>
+          <select class="form-input" formControlName="piso" (change)="sugerirCodigoAula()">
+            <option *ngFor="let p of pisosDisponibles()" [value]="p">{{ p }}</option>
+          </select>
+        </div>
+
+        <div class="form-group" [class.form-group--error]="aulaFieldHasError('codigo')">
+          <label class="form-label"><span class="material-icons">qr_code</span>Código</label>
+          <input type="text" class="form-input" placeholder="A2-201" formControlName="codigo" maxlength="6" style="text-transform:uppercase">
+          <span class="form-hint">Formato: A{{'{'}}edificio{{'}'}}-{{'{'}}piso{{'}'}}{{'{'}}salon{{'}'}} (ej: A2-201)</span>
+          <span class="form-error" *ngIf="aulaFieldHasError('codigo')">
+            <span class="material-icons">error_outline</span> Formato inválido
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label"><span class="material-icons">label</span>Nombre (opcional)</label>
+        <input type="text" class="form-input" placeholder="Ej: Aula magna" formControlName="nombre_aula" autocomplete="off">
+      </div>
+
+      <div class="form-group" [class.form-group--error]="aulaFieldHasError('capacidad')">
+        <label class="form-label"><span class="material-icons">groups</span>Capacidad</label>
+        <input type="number" class="form-input" min="1" max="500" formControlName="capacidad">
+        <span class="form-error" *ngIf="aulaFieldHasError('capacidad')">
+          <span class="material-icons">error_outline</span> Entre 1 y 500
+        </span>
+      </div>
+
+      <div class="form-warning form-warning--error" *ngIf="saveAulaError()">
+        <span class="material-icons">error</span> {{ saveAulaError() }}
+      </div>
+    </form>
+
+    <footer class="modal-foot">
+      <button class="btn-ghost" (click)="closeAulaModal()" [disabled]="savingAula()">Cancelar</button>
+      <button class="btn-primary" (click)="saveAula()" [disabled]="savingAula()">
+        <span class="spinner-sm" *ngIf="savingAula()"></span>
+        <span class="material-icons" *ngIf="!savingAula()">{{ editingAula() ? 'save' : 'check' }}</span>
+        <span>{{ savingAula() ? 'Guardando…' : (editingAula() ? 'Guardar' : 'Crear aula') }}</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Modal: carga masiva XLSX                                        -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showBulkModal()" (click)="closeBulkModal()">
+  <div class="modal-card modal-card--lg" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-head__icon"><span class="material-icons">upload_file</span></div>
+      <div>
+        <h3 class="modal-head__title">Carga masiva de aulas</h3>
+        <p class="modal-head__sub">{{ selected()?.nombre }} · Sube un archivo .xlsx</p>
+      </div>
+      <button class="modal-close" (click)="closeBulkModal()" [disabled]="bulkUploading()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+
+      <!-- Paso 1: subir archivo -->
+      <div class="bulk-step" *ngIf="bulkParsed().length === 0 && bulkResults().length === 0">
+        <div class="bulk-info">
+          <p>El archivo debe contener las columnas: <code>codigo</code>, <code>nombre_aula</code>, <code>piso</code>, <code>capacidad</code>.</p>
+          <button class="btn-ghost btn-sm" (click)="descargarPlantilla()">
+            <span class="material-icons">download</span> Descargar plantilla de ejemplo
+          </button>
+        </div>
+
+        <label class="bulk-drop">
+          <input type="file" accept=".xlsx,.xls" (change)="onBulkFileSelected($event)" hidden>
+          <span class="material-icons bulk-drop__icon">cloud_upload</span>
+          <span class="bulk-drop__title">Selecciona un archivo Excel</span>
+          <span class="bulk-drop__hint">.xlsx o .xls</span>
+        </label>
+      </div>
+
+      <!-- Paso 2: preview -->
+      <div class="bulk-step" *ngIf="bulkParsed().length > 0 && bulkResults().length === 0">
+        <div class="bulk-summary">
+          <div class="bulk-stat bulk-stat--ok">
+            <span class="material-icons">check_circle</span>
+            <span><strong>{{ bulkValidCount() }}</strong> válidas</span>
+          </div>
+          <div class="bulk-stat bulk-stat--err" *ngIf="bulkInvalidCount() > 0">
+            <span class="material-icons">cancel</span>
+            <span><strong>{{ bulkInvalidCount() }}</strong> con errores</span>
+          </div>
+        </div>
+
+        <div class="bulk-preview">
+          <table class="bulk-table">
+            <thead>
+              <tr>
+                <th>Fila</th>
+                <th>Código</th>
+                <th>Nombre</th>
+                <th>Piso</th>
+                <th>Cap.</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of bulkParsed()" [class.bulk-row--err]="!r.valid">
+                <td>{{ r.row }}</td>
+                <td><code>{{ r.data.codigo || '—' }}</code></td>
+                <td>{{ r.data.nombre_aula || '—' }}</td>
+                <td>{{ r.data.piso }}</td>
+                <td>{{ r.data.capacidad }}</td>
+                <td>
+                  <span class="bulk-pill bulk-pill--ok" *ngIf="r.valid">OK</span>
+                  <span class="bulk-pill bulk-pill--err" *ngIf="!r.valid" [title]="r.error">{{ r.error }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Paso 3: resultados -->
+      <div class="bulk-step" *ngIf="bulkResults().length > 0">
+        <div class="bulk-summary">
+          <div class="bulk-stat bulk-stat--ok">
+            <span class="material-icons">check_circle</span>
+            <span>
+              <strong>{{ bulkResultsOkCount() }}</strong>
+              de {{ bulkResults().length }} aulas creadas
+            </span>
+          </div>
+          <div class="bulk-stat bulk-stat--err" *ngIf="bulkResultsErrCount() > 0">
+            <span class="material-icons">cancel</span>
+            <span><strong>{{ bulkResultsErrCount() }}</strong> con errores</span>
+          </div>
+        </div>
+        <div class="bulk-preview">
+          <table class="bulk-table">
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Resultado</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of bulkResults()" [class.bulk-row--err]="!r.success">
+                <td><code>{{ r.payload.codigo }}</code></td>
+                <td>
+                  <span class="bulk-pill bulk-pill--ok" *ngIf="r.success">Creada</span>
+                  <span class="bulk-pill bulk-pill--err" *ngIf="!r.success">Error</span>
+                </td>
+                <td>{{ r.success ? 'ID #' + r.created?.id_aula : r.error }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <footer class="modal-foot">
+      <button
+        *ngIf="bulkParsed().length > 0 && bulkResults().length === 0"
+        class="btn-ghost"
+        (click)="resetBulk()"
+        [disabled]="bulkUploading()">
+        <span class="material-icons">restart_alt</span> Cambiar archivo
+      </button>
+      <button class="btn-ghost" (click)="closeBulkModal()" [disabled]="bulkUploading()">
+        {{ bulkResults().length > 0 ? 'Cerrar' : 'Cancelar' }}
+      </button>
+      <button
+        *ngIf="bulkParsed().length > 0 && bulkResults().length === 0"
+        class="btn-primary"
+        [disabled]="bulkValidCount() === 0 || bulkUploading()"
+        (click)="startBulkUpload()">
+        <span class="spinner-sm" *ngIf="bulkUploading()"></span>
+        <span class="material-icons" *ngIf="!bulkUploading()">cloud_upload</span>
+        <span>{{ bulkUploading() ? 'Cargando…' : 'Cargar ' + bulkValidCount() + ' aulas' }}</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- Confirms -->
+<app-confirm-dialog
+  [open]="showDeleteEd()"
+  variant="danger"
+  title="¿Eliminar edificio?"
+  [message]="'Si tiene aulas o auxiliares asociados, será desactivado lógicamente.' + (deleteEdError() ? ' — ' + deleteEdError() : '')"
+  confirmText="Sí, eliminar"
+  [loading]="deletingEd()"
+  (confirm)="confirmDeleteEdificio()"
+  (cancel)="cancelDeleteEdificio()">
+</app-confirm-dialog>
+
+<app-confirm-dialog
+  [open]="showDeleteAula()"
+  variant="danger"
+  title="¿Eliminar aula?"
+  [message]="(aulaToDelete()?.codigo || '') + ' será eliminada permanentemente.' + (deleteAulaError() ? ' — ' + deleteAulaError() : '')"
+  confirmText="Sí, eliminar"
+  [loading]="deletingAula()"
+  (confirm)="confirmDeleteAula()"
+  (cancel)="cancelDeleteAula()">
+</app-confirm-dialog>

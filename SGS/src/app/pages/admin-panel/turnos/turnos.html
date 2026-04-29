@@ -1,11 +1,196 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/turnos/turnos.html -->
+
+<!-- Header con acción primaria -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Turnos del sistema</h2>
+    <p class="page-head__sub">
+      Franjas horarias globales que se asignan a planillas y horarios.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
-  </div>
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">add</span>
+    <span>Nuevo turno</span>
+  </button>
 </section>
+
+<!-- Loading -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando turnos…</p>
+</div>
+
+<!-- Error -->
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button type="button" class="btn-ghost" (click)="cargar()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<!-- Empty -->
+<div class="state-card state-card--empty" *ngIf="!loading() && !errorMsg() && turnos().length === 0">
+  <span class="material-icons">schedule</span>
+  <h3>No hay turnos registrados</h3>
+  <p>Crea el primer turno (ej: Turno 1, 06:00–12:00) para empezar a asignar planillas.</p>
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">add</span>
+    <span>Crear primer turno</span>
+  </button>
+</div>
+
+<!-- Lista de turnos (cards en mobile, grid en desktop) -->
+<section class="turnos-grid" *ngIf="!loading() && !errorMsg() && turnos().length > 0">
+  <article class="turno-card" *ngFor="let t of turnos()">
+    <div class="turno-card__head">
+      <div class="turno-card__icon">
+        <span class="material-icons">schedule</span>
+      </div>
+      <div class="turno-card__title-block">
+        <h3 class="turno-card__title">{{ t.nombre_turno }}</h3>
+        <span class="turno-card__pill">{{ duracion(t) }}</span>
+      </div>
+    </div>
+
+    <div class="turno-card__times">
+      <div class="time-block">
+        <span class="time-block__label">Inicio</span>
+        <span class="time-block__value">{{ formatHora(t.hora_inicio) }}</span>
+      </div>
+      <span class="time-arrow">
+        <span class="material-icons">arrow_forward</span>
+      </span>
+      <div class="time-block">
+        <span class="time-block__label">Fin</span>
+        <span class="time-block__value">{{ formatHora(t.hora_fin) }}</span>
+      </div>
+    </div>
+
+    <div class="turno-card__actions">
+      <button type="button" class="btn-ghost btn-sm" (click)="openEdit(t)">
+        <span class="material-icons">edit</span>
+        Editar
+      </button>
+      <button type="button" class="btn-ghost btn-ghost--danger btn-sm" (click)="requestDelete(t)">
+        <span class="material-icons">delete_outline</span>
+        Eliminar
+      </button>
+    </div>
+  </article>
+</section>
+
+<!-- ─────────────────────────────────────────────────────────── -->
+<!-- Modal: crear / editar turno                                   -->
+<!-- ─────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" *ngIf="showFormModal()" (click)="closeFormModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">{{ modoEdicion() ? 'edit' : 'add_circle_outline' }}</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">{{ modoEdicion() ? 'Editar turno' : 'Nuevo turno' }}</h3>
+        <p class="modal-head__sub">
+          Define el nombre y el rango horario.
+        </p>
+      </div>
+      <button type="button" class="modal-close" (click)="closeFormModal()" [disabled]="saving()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+
+      <!-- Nombre -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('nombre_turno')">
+        <label class="form-label">
+          <span class="material-icons">badge</span>
+          Nombre del turno
+        </label>
+        <input
+          type="text"
+          class="form-input"
+          placeholder="Ej: Turno 1"
+          formControlName="nombre_turno"
+          maxlength="50"
+          autocomplete="off">
+        <span class="form-error" *ngIf="fieldHasError('nombre_turno')">
+          <span class="material-icons">error_outline</span>
+          Campo requerido
+        </span>
+      </div>
+
+      <!-- Horas en fila -->
+      <div class="form-row">
+        <div class="form-group" [class.form-group--error]="fieldHasError('hora_inicio')">
+          <label class="form-label">
+            <span class="material-icons">login</span>
+            Hora inicio
+          </label>
+          <input
+            type="time"
+            class="form-input"
+            formControlName="hora_inicio">
+          <span class="form-error" *ngIf="fieldHasError('hora_inicio')">
+            <span class="material-icons">error_outline</span>
+            Campo requerido
+          </span>
+        </div>
+
+        <div class="form-group" [class.form-group--error]="fieldHasError('hora_fin')">
+          <label class="form-label">
+            <span class="material-icons">logout</span>
+            Hora fin
+          </label>
+          <input
+            type="time"
+            class="form-input"
+            formControlName="hora_fin">
+          <span class="form-error" *ngIf="fieldHasError('hora_fin')">
+            <span class="material-icons">error_outline</span>
+            Campo requerido
+          </span>
+        </div>
+      </div>
+
+      <!-- Validación cruzada -->
+      <div class="form-warning" *ngIf="form.errors?.['rangoHoras'] && form.get('hora_fin')?.touched">
+        <span class="material-icons">priority_high</span>
+        La hora de fin debe ser posterior a la hora de inicio.
+      </div>
+
+      <!-- Error del servidor -->
+      <div class="form-warning form-warning--error" *ngIf="saveError()">
+        <span class="material-icons">error</span>
+        {{ saveError() }}
+      </div>
+
+    </form>
+
+    <footer class="modal-foot">
+      <button type="button" class="btn-ghost" (click)="closeFormModal()" [disabled]="saving()">
+        Cancelar
+      </button>
+      <button type="button" class="btn-primary" (click)="save()" [disabled]="saving()">
+        <span class="spinner-sm" *ngIf="saving()"></span>
+        <span class="material-icons" *ngIf="!saving()">{{ modoEdicion() ? 'save' : 'check' }}</span>
+        <span>{{ saving() ? 'Guardando…' : (modoEdicion() ? 'Guardar cambios' : 'Crear turno') }}</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- Confirmación de eliminación -->
+<app-confirm-dialog
+  [open]="showDelete()"
+  variant="danger"
+  title="¿Eliminar turno?"
+  [message]="(turnoToDelete()?.nombre_turno || '') + ' será eliminado de forma permanente. No podrá usarse en planillas u horarios.' + (deleteError() ? ' — ' + deleteError() : '')"
+  confirmText="Sí, eliminar"
+  cancelText="Cancelar"
+  [loading]="deleting()"
+  (confirm)="confirmDelete()"
+  (cancel)="cancelDelete()">
+</app-confirm-dialog>
