@@ -5,7 +5,7 @@ import { Observable, of } from 'rxjs';
 import { tap, switchMap, catchError } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { UserRole } from '../../models/edu.models';
-import { environment } from './../../environments/environment';
+import { environment } from './../../environments/environment.prod';
 
 /**
  * Forma del usuario que devuelve GET /usuarios/me en el backend.
