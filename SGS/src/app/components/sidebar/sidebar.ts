@@ -1,38 +1,77 @@
 // src/app/components/sidebar/sidebar.ts
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { MenuItem } from '../../../models/edu.models';
+import { RouterLink, RouterLinkActive } from '@angular/router';
+
+export interface SidebarItem {
+  id: string;
+  icon: string;
+  label: string;
+  path: string;
+}
+
+export interface SidebarSection {
+  label: string;
+  items: SidebarItem[];
+}
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink, RouterLinkActive],
   templateUrl: 'sidebar.html',
   styleUrls: ['sidebar.css']
 })
 export class SidebarComponent {
-  @Input() activeTab: string = 'dashboard';
-  @Output() tabChange = new EventEmitter<string>();
+  /** Controla la visibilidad en móvil (off-canvas) */
+  @Input() isOpen = false;
+  @Output() close = new EventEmitter<void>();
 
-  // Rutas alineadas a los requerimientos:
-  //   /admin/dashboard, /admin/auxiliares, /admin/docentes, etc.
-  dashboardItems: MenuItem[] = [
-    { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', path: '/admin/dashboard' }
+  /**
+   * Estructura del menú alineada al documento:
+   *   Dashboard → Dashboard
+   *   Gestión   → Auxiliares, Planillas, Turnos, Edificios, Docentes
+   *   Operación → Horarios, Novedades, Solicitudes, Registros
+   *   Informes  → Reportes
+   */
+  sections: SidebarSection[] = [
+    {
+      label: 'Dashboard',
+      items: [
+        { id: 'dashboard', icon: 'dashboard', label: 'Dashboard', path: '/admin/dashboard' },
+      ],
+    },
+    {
+      label: 'Gestión',
+      items: [
+        { id: 'auxiliares', icon: 'group',         label: 'Auxiliares', path: '/admin/auxiliares' },
+        { id: 'planillas',  icon: 'assignment',    label: 'Planillas',  path: '/admin/planillas'  },
+        { id: 'turnos',     icon: 'schedule',      label: 'Turnos',     path: '/admin/turnos'     },
+        { id: 'edificios',  icon: 'apartment',     label: 'Edificios',  path: '/admin/edificios'  },
+        { id: 'docentes',   icon: 'person_pin',    label: 'Docentes',   path: '/admin/docentes'   },
+      ],
+    },
+    {
+      label: 'Operación',
+      items: [
+        { id: 'horarios',    icon: 'calendar_month',     label: 'Horarios',    path: '/admin/horarios'    },
+        { id: 'novedades',   icon: 'campaign',           label: 'Novedades',   path: '/admin/novedades'   },
+        { id: 'solicitudes', icon: 'support_agent',      label: 'Solicitudes', path: '/admin/solicitudes' },
+        { id: 'registros',   icon: 'history',            label: 'Registros',   path: '/admin/registros'   },
+      ],
+    },
+    {
+      label: 'Informes',
+      items: [
+        { id: 'reportes', icon: 'description', label: 'Reportes', path: '/admin/reportes' },
+      ],
+    },
   ];
 
-  gestionItems: MenuItem[] = [
-    { id: 'auxiliares', icon: 'group',      label: 'Auxiliares', path: '/admin/auxiliares' },
-    { id: 'docentes',   icon: 'person_pin', label: 'Docentes',   path: '/admin/docentes'   },
-    { id: 'cursos',     icon: 'menu_book',  label: 'Cursos',     path: '/admin/cursos'     },
-  ];
-
-  informesItems: MenuItem[] = [
-    { id: 'reportes',  icon: 'description',    label: 'Reportes',                path: '/admin/reportes'  },
-    { id: 'av-issues', icon: 'videocam_off',   label: 'Problemas audiovisuales', path: '/admin/av-issues' },
-    { id: 'horarios',  icon: 'calendar_month', label: 'Horarios',                path: '/admin/horarios'  },
-    { id: 'registros', icon: 'history',        label: 'Registros',               path: '/admin/registros' },
-  ];
-
-  changeTab(id: string): void { this.tabChange.emit(id); }
-  isActive(id: string): boolean { return this.activeTab === id; }
+  onItemClick(): void {
+    // En móvil cerramos el sidebar al navegar
+    if (window.innerWidth < 1024) {
+      this.close.emit();
+    }
+  }
 }
