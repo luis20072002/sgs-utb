@@ -1,0 +1,110 @@
+/* src/app/components/confirm-dialog/confirm-dialog.css */
+
+.cd-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 41, 0.55);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 16px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.cd-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(15, 23, 41, 0.2);
+  width: 100%;
+  max-width: 400px;
+  padding: 28px 24px 22px;
+  text-align: center;
+  animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.cd-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+}
+.cd-icon .material-icons { font-size: 28px; }
+
+.cd-icon--danger  { background: var(--error-bg);   color: var(--error); }
+.cd-icon--warning { background: #fef3c7;           color: #b45309; }
+.cd-icon--info    { background: var(--brand-50);   color: var(--brand); }
+
+.cd-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.cd-message {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  line-height: 1.5;
+}
+
+.cd-actions {
+  display: flex;
+  gap: 10px;
+}
+.cd-btn {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.15s, opacity 0.15s, transform 0.05s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.cd-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.cd-btn:active:not(:disabled) { transform: translateY(1px); }
+
+.cd-btn--ghost {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+.cd-btn--ghost:hover:not(:disabled) {
+  background: var(--border);
+}
+
+.cd-btn--danger  { background: var(--error);   color: var(--white); }
+.cd-btn--danger:hover:not(:disabled)  { background: #be123c; }
+
+.cd-btn--warning { background: #d97706;        color: var(--white); }
+.cd-btn--warning:hover:not(:disabled) { background: #b45309; }
+
+.cd-btn--info    { background: var(--brand);   color: var(--white); }
+.cd-btn--info:hover:not(:disabled)    { background: var(--brand-600); }
+
+.cd-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spinCD 0.7s linear infinite;
+}
+@keyframes spinCD { to { transform: rotate(360deg); } }

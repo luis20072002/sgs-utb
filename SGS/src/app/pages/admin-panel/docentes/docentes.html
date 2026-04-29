@@ -1,11 +1,360 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/docentes/docentes.html -->
+
+<!-- Header -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Docentes</h2>
+    <p class="page-head__sub">
+      Lista de docentes registrados con análisis visual de asistencia.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">add</span>
+    <span>Nuevo docente</span>
+  </button>
+</section>
+
+<!-- Toolbar -->
+<section class="toolbar">
+  <div class="toolbar__search">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="search"
+        class="search-input"
+        placeholder="Buscar por nombre, apellido o correo…"
+        [value]="searchTerm()"
+        (input)="setSearch($any($event.target).value)">
+    </div>
+  </div>
+
+  <div class="toolbar__filters">
+    <div class="chip-group">
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'todos'"
+              (click)="setFiltroEstado('todos')">
+        Todos
+      </button>
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'activos'"
+              (click)="setFiltroEstado('activos')">
+        Activos
+      </button>
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'inactivos'"
+              (click)="setFiltroEstado('inactivos')">
+        Inactivos
+      </button>
+    </div>
   </div>
 </section>
+
+<!-- Loading -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando docentes…</p>
+</div>
+
+<!-- Error -->
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button class="btn-ghost" (click)="cargarDocentes()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<!-- Empty -->
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && docentes().length === 0">
+  <span class="material-icons">person_pin</span>
+  <h3>Aún no hay docentes registrados</h3>
+  <p>Registra el primer docente para empezar a vincularlo con cursos y registros.</p>
+  <button class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">add</span>
+    <span>Crear primer docente</span>
+  </button>
+</div>
+
+<!-- Empty con filtros -->
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && docentes().length > 0">
+  <span class="material-icons">search_off</span>
+  <h3>Sin coincidencias</h3>
+  <p>Intenta con otros términos de búsqueda o cambia el filtro de estado.</p>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Tabla / cards de docentes                                       -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<section class="data-section" *ngIf="!loading() && !errorMsg() && filteredAll().length > 0">
+
+  <!-- Desktop: tabla -->
+  <div class="table-wrap hide-on-mobile">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Docente</th>
+          <th>Correo</th>
+          <th>Teléfono</th>
+          <th>Estado</th>
+          <th class="th-actions">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of pagedRows()">
+          <td>
+            <div class="user-cell">
+              <div class="user-cell__avatar">{{ initials(d) }}</div>
+              <div class="user-cell__info">
+                <span class="user-cell__name">{{ fullName(d) }}</span>
+                <span class="user-cell__id">ID #{{ d.id_docente }}</span>
+              </div>
+            </div>
+          </td>
+          <td>{{ d.correo }}</td>
+          <td>{{ d.telefono }}</td>
+          <td>
+            <span class="status-pill" [class.status-pill--on]="d.estado" [class.status-pill--off]="!d.estado">
+              <span class="status-dot"></span>
+              {{ d.estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td class="td-actions">
+            <button class="btn-icon" (click)="openEdit(d)" title="Editar">
+              <span class="material-icons">edit</span>
+            </button>
+            <button
+              class="btn-icon"
+              [class.btn-icon--danger]="d.estado"
+              [class.btn-icon--success]="!d.estado"
+              (click)="requestToggle(d)"
+              [title]="d.estado ? 'Desactivar' : 'Activar'">
+              <span class="material-icons">{{ d.estado ? 'block' : 'check_circle' }}</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="cards-list show-on-mobile">
+    <article class="docente-card" *ngFor="let d of pagedRows()">
+      <div class="docente-card__head">
+        <div class="user-cell__avatar">{{ initials(d) }}</div>
+        <div>
+          <h4 class="docente-card__name">{{ fullName(d) }}</h4>
+          <span class="docente-card__id">ID #{{ d.id_docente }}</span>
+        </div>
+        <span class="status-pill"
+              [class.status-pill--on]="d.estado"
+              [class.status-pill--off]="!d.estado">
+          <span class="status-dot"></span>
+          {{ d.estado ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <div class="docente-card__body">
+        <p><span class="material-icons">email</span> {{ d.correo }}</p>
+        <p><span class="material-icons">phone</span> {{ d.telefono }}</p>
+      </div>
+      <div class="docente-card__actions">
+        <button class="btn-ghost btn-sm" (click)="openEdit(d)">
+          <span class="material-icons">edit</span> Editar
+        </button>
+        <button
+          class="btn-ghost btn-sm"
+          [class.btn-ghost--danger]="d.estado"
+          (click)="requestToggle(d)">
+          <span class="material-icons">{{ d.estado ? 'block' : 'check_circle' }}</span>
+          {{ d.estado ? 'Desactivar' : 'Activar' }}
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages() > 1">
+    <span class="pagination__info">
+      Página {{ pageIndex() + 1 }} de {{ totalPages() }}
+      · {{ filteredAll().length }} resultado{{ filteredAll().length !== 1 ? 's' : '' }}
+    </span>
+    <div class="pagination__controls">
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() === 0" (click)="pagePrev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() >= totalPages() - 1" (click)="pageNext()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Sección de gráficas                                             -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<section class="analytics" *ngIf="!loading() && !errorMsg()">
+  <header class="analytics__head">
+    <div>
+      <h3 class="analytics__title">
+        <span class="material-icons">analytics</span>
+        Análisis de asistencia
+      </h3>
+      <p class="analytics__sub">Indicadores derivados de los registros de aula.</p>
+    </div>
+    <div class="analytics__filters">
+      <div class="date-input">
+        <label>Desde</label>
+        <input type="date" [value]="rangeStart()" (change)="setRangeStart($any($event.target).value)">
+      </div>
+      <div class="date-input">
+        <label>Hasta</label>
+        <input type="date" [value]="rangeEnd()" (change)="setRangeEnd($any($event.target).value)">
+      </div>
+    </div>
+  </header>
+
+  <!-- Empty de stats -->
+  <div class="state-card state-card--empty" *ngIf="!loadingStats() && !hasStatsData()">
+    <span class="material-icons">insights</span>
+    <h3>Aún no hay datos suficientes</h3>
+    <p>Cuando los auxiliares registren asistencia de docentes, aquí verás las gráficas.</p>
+  </div>
+
+  <!-- Loading stats -->
+  <div class="state-card state-card--loading" *ngIf="loadingStats()">
+    <div class="spinner-lg"></div>
+    <p>Calculando estadísticas…</p>
+  </div>
+
+  <!-- Charts grid -->
+  <div class="charts-grid" *ngIf="!loadingStats() && hasStatsData()">
+
+    <article class="chart-card chart-card--span2">
+      <header class="chart-card__head">
+        <h4>Top 5 docentes con menor asistencia</h4>
+        <p>Solo se incluyen docentes con al menos 3 registros en el rango.</p>
+      </header>
+      <div class="chart-card__body chart-card__body--lg">
+        <canvas baseChart
+          [data]="bottomAsistenciaData()"
+          [options]="bottomAsistenciaOpts"
+          type="bar"></canvas>
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header class="chart-card__head">
+        <h4>Ausentismo por día</h4>
+        <p>Inasistencias registradas por día de la semana.</p>
+      </header>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [data]="ausentismoSemanaData()"
+          [options]="ausentismoSemanaOpts"
+          type="bar"></canvas>
+      </div>
+    </article>
+
+    <article class="chart-card">
+      <header class="chart-card__head">
+        <h4>Evolución mensual</h4>
+        <p>% de asistencia agregado por mes.</p>
+      </header>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [data]="evolucionMesData()"
+          [options]="evolucionMesOpts"
+          type="line"></canvas>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════ -->
+<!-- Modal: crear/editar docente                                     -->
+<!-- ═════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showFormModal()" (click)="closeForm()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">{{ editing() ? 'edit' : 'person_add' }}</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">{{ editing() ? 'Editar docente' : 'Nuevo docente' }}</h3>
+        <p class="modal-head__sub">Datos de contacto y registro.</p>
+      </div>
+      <button class="modal-close" (click)="closeForm()" [disabled]="saving()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+      <div class="form-row">
+        <div class="form-group" [class.form-group--error]="fieldHasError('nombre')">
+          <label class="form-label"><span class="material-icons">person</span>Nombre</label>
+          <input type="text" class="form-input" placeholder="Ej: María" formControlName="nombre" autocomplete="off">
+          <span class="form-error" *ngIf="fieldHasError('nombre')">
+            <span class="material-icons">error_outline</span> Mínimo 2 caracteres
+          </span>
+        </div>
+        <div class="form-group" [class.form-group--error]="fieldHasError('apellido')">
+          <label class="form-label"><span class="material-icons">person_outline</span>Apellido</label>
+          <input type="text" class="form-input" placeholder="Ej: González" formControlName="apellido" autocomplete="off">
+          <span class="form-error" *ngIf="fieldHasError('apellido')">
+            <span class="material-icons">error_outline</span> Mínimo 2 caracteres
+          </span>
+        </div>
+      </div>
+
+      <div class="form-group" [class.form-group--error]="fieldHasError('correo')">
+        <label class="form-label"><span class="material-icons">email</span>Correo electrónico</label>
+        <input type="email" class="form-input" placeholder="Ej: maria.gonzalez@sgs.com" formControlName="correo" autocomplete="off">
+        <span class="form-error" *ngIf="fieldHasError('correo')">
+          <span class="material-icons">error_outline</span> Correo inválido
+        </span>
+      </div>
+
+      <div class="form-group" [class.form-group--error]="fieldHasError('telefono')">
+        <label class="form-label"><span class="material-icons">phone</span>Teléfono</label>
+        <input type="tel" class="form-input" placeholder="Ej: +57 300 123 4567" formControlName="telefono" autocomplete="off">
+        <span class="form-error" *ngIf="fieldHasError('telefono')">
+          <span class="material-icons">error_outline</span> 7 a 20 caracteres
+        </span>
+      </div>
+
+      <div class="form-warning form-warning--error" *ngIf="saveError()">
+        <span class="material-icons">error</span> {{ saveError() }}
+      </div>
+
+      <div class="role-note" *ngIf="!editing()">
+        <span class="material-icons">info</span>
+        El docente se registrará con rol <strong>docente</strong>. No tendrá acceso de inicio de sesión al sistema.
+      </div>
+    </form>
+
+    <footer class="modal-foot">
+      <button class="btn-ghost" (click)="closeForm()" [disabled]="saving()">Cancelar</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving()">
+        <span class="spinner-sm" *ngIf="saving()"></span>
+        <span class="material-icons" *ngIf="!saving()">{{ editing() ? 'save' : 'check' }}</span>
+        <span>{{ saving() ? 'Guardando…' : (editing() ? 'Guardar cambios' : 'Crear docente') }}</span>
+      </button>
+    </footer>
+  </div>
+</div>
+
+<!-- Confirm toggle estado -->
+<app-confirm-dialog
+  [open]="showToggleDialog()"
+  [variant]="toggleTarget()?.estado ? 'danger' : 'info'"
+  [title]="toggleTarget()?.estado ? '¿Desactivar docente?' : '¿Activar docente?'"
+  [message]="(toggleTarget()?.nombre + ' ' + toggleTarget()?.apellido) + (toggleTarget()?.estado
+    ? ' será desactivado lógicamente. Su historial se conservará.'
+    : ' será reactivado en el sistema.') + (toggleError() ? ' — ' + toggleError() : '')"
+  [confirmText]="toggleTarget()?.estado ? 'Sí, desactivar' : 'Sí, activar'"
+  [loading]="toggling()"
+  (confirm)="confirmToggle()"
+  (cancel)="cancelToggle()">
+</app-confirm-dialog>
