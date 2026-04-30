@@ -1,0 +1,286 @@
+
+    <div class="wizard-overlay" (click)="onOverlayClick($event)">
+      <div class="wizard-modal" (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="wizard-header">
+          <h2>Nueva Planilla</h2>
+          <button class="close-btn" (click)="cerrar.emit()">&#x2715;</button>
+        </div>
+
+        <!-- Stepper -->
+        <div class="stepper">
+          @for (step of pasos; track step.num) {
+            <div class="step" [class.activo]="pasoActual() === step.num" [class.completado]="pasoActual() > step.num">
+              <div class="step-num">
+                @if (pasoActual() > step.num) { &#10003; } @else { {{ step.num }} }
+              </div>
+              <span class="step-label">{{ step.label }}</span>
+            </div>
+            @if (!$last) { <div class="step-line" [class.completada]="pasoActual() > step.num"></div> }
+          }
+        </div>
+
+        <!-- Contenido por paso -->
+        <div class="wizard-body">
+
+          <!-- PASO 1: Datos básicos -->
+          @if (pasoActual() === 1) {
+            <div class="paso-contenido">
+              <h3 class="paso-titulo">Datos básicos de la planilla</h3>
+
+              <div class="form-grid">
+                <div class="field">
+                  <label>Auxiliar *</label>
+                  <select [(ngModel)]="form.id_usuario" (change)="onAuxiliarChange()">
+                    <option value="">Seleccionar auxiliar</option>
+                    @for (a of auxiliares; track a.id_usuario) {
+                      <option [value]="a.id_usuario">{{ a.nombre }}</option>
+                    }
+                  </select>
+                  @if (auxiliarEdificio()) {
+                    <span class="field-hint">
+                      Edificio asignado: <strong>{{ getNombreEdificio(auxiliarEdificio()!) }}</strong>
+                    </span>
+                  }
+                </div>
+
+                <div class="field">
+                  <label>Edificio *</label>
+                  <select [(ngModel)]="form.id_edificio" (change)="onEdificioChange()">
+                    <option value="">Seleccionar edificio</option>
+                    @for (e of edificios; track e.id_edificio) {
+                      <option [value]="e.id_edificio">{{ e.nombre }} ({{ e.codigo }})</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Turno *</label>
+                  <select [(ngModel)]="form.id_turno">
+                    <option value="">Seleccionar turno</option>
+                    @for (t of turnos; track t.id_turno) {
+                      <option [value]="t.id_turno">
+                        {{ t.nombre_turno }} ({{ t.hora_inicio }} - {{ t.hora_fin }})
+                      </option>
+                    }
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Período de vigencia *</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="form.periodo_vigencia"
+                    placeholder="ej: 202501"
+                    maxlength="6"
+                  />
+                  <span class="field-hint">Formato: YYYYSS (año + semestre). Ej: 202501 = 2025 semestre 1</span>
+                </div>
+
+                <div class="field">
+                  <label>Fecha de asignación *</label>
+                  <input type="date" [(ngModel)]="form.fecha_asignacion" />
+                </div>
+              </div>
+
+              <!-- Selección de pisos -->
+              <div class="pisos-section">
+                <label class="pisos-label">Pisos cubiertos * <span class="hint">(máx. 3)</span></label>
+                @if (edificioSeleccionado()) {
+                  <div class="pisos-grid">
+                    @for (p of pisosDisponibles(); track p) {
+                      <label class="piso-check" [class.seleccionado]="isPisoSeleccionado(p)">
+                        <input
+                          type="checkbox"
+                          [checked]="isPisoSeleccionado(p)"
+                          (change)="togglePiso(p)"
+                          [disabled]="!isPisoSeleccionado(p) && pisosSeleccionados().length >= 3"
+                        />
+                        Piso {{ p }}
+                      </label>
+                    }
+                  </div>
+                  <span class="field-hint">{{ pisosSeleccionados().length }}/3 pisos seleccionados</span>
+                } @else {
+                  <p class="field-hint">Primero selecciona un edificio</p>
+                }
+              </div>
+
+              @if (errorPaso1()) {
+                <div class="error-msg">{{ errorPaso1() }}</div>
+              }
+            </div>
+          }
+
+          <!-- PASO 2: Aulas de los pisos -->
+          @if (pasoActual() === 2) {
+            <div class="paso-contenido">
+              <h3 class="paso-titulo">Aulas incluidas en la planilla</h3>
+              <p class="paso-desc">
+                Estas son las aulas de los pisos seleccionados ({{ pisosTexto() }}).
+                Selecciona las que formarán parte del recorrido.
+              </p>
+
+              @if (cargandoAulas()) {
+                <div class="loading-inline">Cargando aulas...</div>
+              } @else if (aulasPorPiso().length === 0) {
+                <div class="empty-state">No hay aulas registradas en estos pisos.</div>
+              } @else {
+                @for (grupo of aulasPorPiso(); track grupo.piso) {
+                  <div class="piso-grupo">
+                    <h4 class="piso-titulo">Piso {{ grupo.piso }}</h4>
+                    <div class="aulas-grid">
+                      @for (aula of grupo.aulas; track aula.id_aula) {
+                        <label class="aula-card" [class.seleccionada]="isAulaSeleccionada(aula.id_aula)">
+                          <input
+                            type="checkbox"
+                            [checked]="isAulaSeleccionada(aula.id_aula)"
+                            (change)="toggleAula(aula)"
+                          />
+                          <div class="aula-info">
+                            <span class="aula-codigo">{{ aula.codigo }}</span>
+                            <span class="aula-nombre">{{ aula.nombre_aula || aula.codigo }}</span>
+                            <span class="aula-cap">Cap. {{ aula.capacidad }}</span>
+                          </div>
+                        </label>
+                      }
+                    </div>
+                  </div>
+                }
+              }
+
+              @if (errorPaso2()) {
+                <div class="error-msg">{{ errorPaso2() }}</div>
+              }
+            </div>
+          }
+
+          <!-- PASO 3: Clases por aula -->
+          @if (pasoActual() === 3) {
+            <div class="paso-contenido paso-3">
+              <div class="paso-3-header">
+                <div>
+                  <h3 class="paso-titulo">Clases por aula</h3>
+                  <p class="paso-desc">Configura las clases para cada aula del recorrido. El horario debe estar dentro del turno seleccionado.</p>
+                </div>
+                <div class="carga-masiva-wrapper">
+                  <label class="btn-upload" title="Sube un .xlsx con columnas: codigo_aula, id_docente, id_curso, hora_inicio, hora_fin, dia_semana">
+                    <input type="file" accept=".xlsx" (change)="cargarXLSX($event)" style="display:none" />
+                    Carga masiva (.xlsx)
+                  </label>
+                  <a class="link-plantilla" (click)="descargarPlantilla()">Descargar plantilla</a>
+                </div>
+              </div>
+
+              <!-- Info turno -->
+              @if (turnoSeleccionado()) {
+                <div class="turno-info-bar">
+                  Turno: <strong>{{ turnoSeleccionado()!.nombre_turno }}</strong>
+                  &nbsp;|&nbsp;
+                  Horario válido: <strong>{{ turnoSeleccionado()!.hora_inicio }} – {{ turnoSeleccionado()!.hora_fin }}</strong>
+                </div>
+              }
+
+              <!-- Tabs de aulas -->
+              <div class="aulas-tabs">
+                @for (ac of aulasConClases(); track ac.aula.id_aula) {
+                  <button
+                    class="aula-tab"
+                    [class.activo]="aulaTabActiva() === ac.aula.id_aula"
+                    (click)="aulaTabActiva.set(ac.aula.id_aula)"
+                  >
+                    {{ ac.aula.codigo }}
+                    <span class="tab-count">{{ ac.clases.length }}</span>
+                  </button>
+                }
+              </div>
+
+              <!-- Editor de clases del aula activa -->
+              @for (ac of aulasConClases(); track ac.aula.id_aula) {
+                @if (aulaTabActiva() === ac.aula.id_aula) {
+                  <div class="clases-editor">
+                    <div class="clases-list">
+                      @for (clase of ac.clases; track $index; let i = $index) {
+                        <div class="clase-row">
+                          <div class="clase-fields">
+                            <div class="field-sm">
+                              <label>Docente</label>
+                              <select [(ngModel)]="clase.id_docente">
+                                <option value="">Seleccionar</option>
+                                @for (d of docentes(); track d.id_docente) {
+                                  <option [value]="d.id_docente">{{ d.nombre }} {{ d.apellido }}</option>
+                                }
+                              </select>
+                            </div>
+                            <div class="field-sm">
+                              <label>Curso</label>
+                              <select [(ngModel)]="clase.id_curso">
+                                <option value="">Seleccionar</option>
+                                @for (c of cursos(); track c.id_curso) {
+                                  <option [value]="c.id_curso">{{ c.nombre_curso }}</option>
+                                }
+                              </select>
+                            </div>
+                            <div class="field-xs">
+                              <label>Inicio</label>
+                              <input type="time" [(ngModel)]="clase.hora_inicio" />
+                            </div>
+                            <div class="field-xs">
+                              <label>Fin</label>
+                              <input type="time" [(ngModel)]="clase.hora_fin" />
+                            </div>
+                            <div class="field-xs">
+                              <label>Día</label>
+                              <select [(ngModel)]="clase.dia_semana">
+                                <option [value]="null">-</option>
+                                @for (d of diasSemana; track d.num) {
+                                  <option [value]="d.num">{{ d.nombre }}</option>
+                                }
+                              </select>
+                            </div>
+                          </div>
+                          <button class="remove-clase" (click)="quitarClase(ac, i)">&#x2715;</button>
+                        </div>
+                      }
+                    </div>
+
+                    <button class="btn-add-clase" (click)="agregarClase(ac)">
+                      + Agregar clase
+                    </button>
+                  </div>
+                }
+              }
+
+              @if (errorPaso3()) {
+                <div class="error-msg">{{ errorPaso3() }}</div>
+              }
+            </div>
+          }
+
+        </div>
+
+        <!-- Footer navegación -->
+        <div class="wizard-footer">
+          <div class="footer-left">
+            @if (pasoActual() > 1) {
+              <button class="btn-ghost" (click)="retroceder()">&#8592; Anterior</button>
+            }
+          </div>
+          <div class="footer-right">
+            <button class="btn-ghost" (click)="cerrar.emit()">Cancelar</button>
+            @if (pasoActual() < 3) {
+              <button class="btn-primary" (click)="avanzar()">
+                Siguiente &#8594;
+              </button>
+            } @else {
+              <button class="btn-primary" [disabled]="guardando()" (click)="guardar()">
+                {{ guardando() ? 'Guardando...' : 'Crear Planilla' }}
+              </button>
+            }
+          </div>
+        </div>
+
+      </div>
+    </div>
+  

@@ -1,0 +1,227 @@
+    <div class="planillas-page">
+
+      <!-- Header -->
+      <div class="page-header">
+        <div class="header-left">
+          <h1 class="page-title">Planillas de Trabajo</h1>
+          <p class="page-subtitle">Gestión de asignaciones por edificio, turno y período</p>
+        </div>
+        <button class="btn-primary" (click)="abrirWizard()">
+          <span class="btn-icon">+</span>
+          Nueva Planilla
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="filtros-bar">
+        <div class="filtro-grupo">
+          <label>Edificio</label>
+          <select [(ngModel)]="filtroEdificio" (change)="aplicarFiltros()">
+            <option value="">Todos</option>
+            @for (e of edificios(); track e.id_edificio) {
+              <option [value]="e.id_edificio">{{ e.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-grupo">
+          <label>Turno</label>
+          <select [(ngModel)]="filtroTurno" (change)="aplicarFiltros()">
+            <option value="">Todos</option>
+            @for (t of turnos(); track t.id_turno) {
+              <option [value]="t.id_turno">{{ t.nombre_turno }}</option>
+            }
+          </select>
+        </div>
+
+        <div class="filtro-grupo">
+          <label>Período</label>
+          <input
+            type="text"
+            placeholder="ej: 202501"
+            [(ngModel)]="filtroPeriodo"
+            (input)="aplicarFiltros()"
+            maxlength="6"
+          />
+        </div>
+
+        <div class="filtro-grupo">
+          <label>Estado</label>
+          <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()">
+            <option value="">Todos</option>
+            <option value="activa">Activa</option>
+            <option value="inactiva">Inactiva</option>
+          </select>
+        </div>
+
+        <button class="btn-ghost" (click)="limpiarFiltros()">Limpiar</button>
+      </div>
+
+      <!-- Stats rápidas -->
+      <div class="stats-row">
+        <div class="stat-chip">
+          <span class="stat-num">{{ planillasFiltradas().length }}</span>
+          <span class="stat-label">Planillas</span>
+        </div>
+        <div class="stat-chip activa">
+          <span class="stat-num">{{ totalActivas() }}</span>
+          <span class="stat-label">Activas</span>
+        </div>
+        <div class="stat-chip inactiva">
+          <span class="stat-num">{{ totalInactivas() }}</span>
+          <span class="stat-label">Inactivas</span>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="tabla-wrapper">
+        @if (cargando()) {
+          <div class="estado-vacio">
+            <div class="spinner"></div>
+            <p>Cargando planillas...</p>
+          </div>
+        } @else if (planillasFiltradas().length === 0) {
+          <div class="estado-vacio">
+            <span class="vacio-icon">📋</span>
+            <p>No hay planillas con los filtros seleccionados</p>
+            <button class="btn-ghost" (click)="limpiarFiltros()">Ver todas</button>
+          </div>
+        } @else {
+          <table class="tabla">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Edificio</th>
+                <th>Turno</th>
+                <th>Período</th>
+                <th>Pisos</th>
+                <th>Auxiliar</th>
+                <th>Asignación</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (p of planillasEnPagina(); track p.id_planillas) {
+                <tr class="fila" [class.inactiva]="p.estado === 'inactiva'">
+                  <td class="id-cell">#{{ p.id_planillas }}</td>
+                  <td>
+                    <span class="edificio-badge">{{ getNombreEdificio(p.id_edificio) }}</span>
+                  </td>
+                  <td>{{ getNombreTurno(p.id_turno) }}</td>
+                  <td><code class="periodo">{{ p.periodo_vigencia }}</code></td>
+                  <td>
+                    <div class="pisos-chips">
+                      <span class="piso-chip">P{{ p.piso_1 }}</span>
+                      @if (p.piso_2) { <span class="piso-chip">P{{ p.piso_2 }}</span> }
+                      @if (p.piso_3) { <span class="piso-chip">P{{ p.piso_3 }}</span> }
+                    </div>
+                  </td>
+                  <td>{{ getNombreAuxiliar(p.id_usuario) }}</td>
+                  <td class="fecha-cell">{{ p.fecha_asignacion | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    <span class="estado-badge" [class]="p.estado">{{ p.estado }}</span>
+                  </td>
+                  <td>
+                    <div class="acciones">
+                      <button
+                        class="accion-btn ver"
+                        title="Ver detalle"
+                        (click)="verDetalle(p)"
+                      >Ver</button>
+                      <button
+                        class="accion-btn"
+                        [class]="p.estado === 'activa' ? 'desactivar' : 'activar'"
+                        (click)="toggleEstado(p)"
+                        [title]="p.estado === 'activa' ? 'Desactivar' : 'Activar'"
+                      >
+                        {{ p.estado === 'activa' ? 'Desactivar' : 'Activar' }}
+                      </button>
+                      <button
+                        class="accion-btn eliminar"
+                        title="Eliminar"
+                        (click)="confirmarEliminar(p)"
+                      >Eliminar</button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+
+          <!-- Paginación -->
+          @if (totalPaginas() > 1) {
+            <div class="paginacion">
+              <button
+                class="pag-btn"
+                [disabled]="paginaActual() === 1"
+                (click)="cambiarPagina(paginaActual() - 1)"
+              >&#8592;</button>
+
+              @for (p of paginasVisibles(); track p) {
+                <button
+                  class="pag-btn"
+                  [class.activa]="p === paginaActual()"
+                  (click)="cambiarPagina(p)"
+                >{{ p }}</button>
+              }
+
+              <button
+                class="pag-btn"
+                [disabled]="paginaActual() === totalPaginas()"
+                (click)="cambiarPagina(paginaActual() + 1)"
+              >&#8594;</button>
+
+              <span class="pag-info">
+                {{ (paginaActual() - 1) * porPagina + 1 }}–{{ Math.min(paginaActual() * porPagina, planillasFiltradas().length) }}
+                de {{ planillasFiltradas().length }}
+              </span>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Modal Wizard -->
+      @if (mostrarWizard()) {
+        <app-planilla-wizard
+          [edificios]="edificios()"
+          [turnos]="turnos()"
+          [auxiliares]="auxiliares()"
+          (cerrar)="cerrarWizard()"
+          (creado)="onPlanillaCreada($event)"
+        />
+      }
+
+      <!-- Modal Detalle -->
+      @if (planillaSeleccionada()) {
+        <app-planilla-detalle
+          [planilla]="planillaSeleccionada()!"
+          [edificios]="edificios()"
+          [turnos]="turnos()"
+          [auxiliares]="auxiliares()"
+          (cerrar)="cerrarDetalle()"
+          (actualizado)="cargarDatos()"
+        />
+      }
+
+      <!-- Confirm eliminar -->
+      @if (planillaAEliminar()) {
+        <div class="overlay" (click)="cancelarEliminar()">
+          <div class="confirm-modal" (click)="$event.stopPropagation()">
+            <h3>Eliminar Planilla #{{ planillaAEliminar()!.id_planillas }}</h3>
+            <p>
+              Esta acción es irreversible. Si la planilla tiene registros asociados,
+              será desactivada en lugar de eliminada.
+            </p>
+            <div class="confirm-actions">
+              <button class="btn-ghost" (click)="cancelarEliminar()">Cancelar</button>
+              <button class="btn-danger" (click)="ejecutarEliminar()">
+                {{ eliminando() ? 'Eliminando...' : 'Sí, eliminar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+    </div>
+  `
