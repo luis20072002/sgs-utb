@@ -23,7 +23,7 @@ interface AulaConClases {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
-  templateUrl: './planilla-detalle.html',
+  templateUrl: './planilla-detalle.component.html',
   styleUrl: './planilla-detalle.component.css'
 
 })

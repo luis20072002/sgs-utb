@@ -14,6 +14,7 @@ import { DocentesService } from '../../../../services/docentes.service';
 import { UserService } from '../../../../services/user.service';
 import { EdificiosService } from '../../../../services/edificios.service';
 
+
 interface ClaseForm {
   id_aula: number;
   id_docente: number;
@@ -42,6 +43,7 @@ export class PlanillaWizardComponent implements OnInit {
   @Input() auxiliares: any[] = [];
   @Output() cerrar = new EventEmitter<void>();
   @Output() creado = new EventEmitter<Planilla>();
+
 
   private docentesService = inject(DocentesService);
   private userService = inject(UserService);
