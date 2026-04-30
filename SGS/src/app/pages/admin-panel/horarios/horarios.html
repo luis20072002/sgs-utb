@@ -1,11 +1,585 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
-  </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+<!-- src/app/pages/admin-panel/horarios/horarios.html -->
+
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- HEADER                                                                     -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Asignación de Horarios</h2>
+    <p class="page-head__sub">
+      Configura los turnos laborales de cada auxiliar por día y período.
+    </p>
   </div>
 </section>
+
+<!-- Loading inicial -->
+@if (loading()) {
+  <div class="state-card state-card--loading">
+    <div class="spinner-lg"></div>
+    <p>Cargando auxiliares y turnos…</p>
+  </div>
+}
+
+@if (!loading()) {
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- LAYOUT MASTER–DETAIL                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <div class="hm-layout">
+
+    <!-- ─── MASTER: lista de auxiliares ──────────────────────────────────── -->
+    <aside class="hm-master">
+      <div class="hm-master__head">
+        <div class="search-box">
+          <span class="material-icons">search</span>
+          <input
+            type="search"
+            class="search-input"
+            placeholder="Buscar auxiliar…"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="searchTerm.set($event)">
+        </div>
+        <span class="counter">{{ filteredAuxiliares().length }}</span>
+      </div>
+
+      @if (filteredAuxiliares().length === 0) {
+        <div class="hm-master__empty">
+          <span class="material-icons">person_off</span>
+          <p>Sin auxiliares activos</p>
+        </div>
+      }
+
+      <div class="hm-master__list">
+        @for (aux of filteredAuxiliares(); track aux.id_usuario) {
+          <article
+            class="aux-row"
+            [class.aux-row--active]="selectedAux()?.id_usuario === aux.id_usuario"
+            (click)="selectAuxiliar(aux)">
+            <div class="aux-row__avatar">{{ getUserInitials(aux.nombre) }}</div>
+            <div class="aux-row__body">
+              <span class="aux-row__name">{{ aux.nombre }}</span>
+              <span class="aux-row__email">{{ aux.correo }}</span>
+            </div>
+            <span class="material-icons aux-row__chevron">chevron_right</span>
+          </article>
+        }
+      </div>
+    </aside>
+
+    <!-- ─── DETAIL: horario del auxiliar seleccionado ─────────────────────── -->
+    <section class="hm-detail">
+
+      @if (!selectedAux()) {
+        <!-- Estado vacío: ningún auxiliar seleccionado -->
+        <div class="detail-empty">
+          <span class="material-icons">calendar_month</span>
+          <h3>Selecciona un auxiliar</h3>
+          <p>Elige un auxiliar de la lista para ver y gestionar su horario laboral.</p>
+        </div>
+      }
+
+      @if (selectedAux(); as aux) {
+        <!-- ── Cabecera del detalle ─────────────────────────────────────── -->
+        <header class="detail-head">
+          <div class="detail-head__avatar">{{ getUserInitials(aux.nombre) }}</div>
+          <div class="detail-head__info">
+            <h3 class="detail-head__name">{{ aux.nombre }}</h3>
+            <p class="detail-head__email">{{ aux.correo }}</p>
+          </div>
+
+          <!-- Selector de período -->
+          <div class="periodo-wrap">
+            <label class="periodo-label">Período:</label>
+            @if (periodosDisponibles().length > 0) {
+              <select
+                class="periodo-select"
+                [ngModel]="periodoFiltro()"
+                (ngModelChange)="periodoFiltro.set($event)">
+                <option value="">Todos</option>
+                @for (p of periodosDisponibles(); track p) {
+                  <option [value]="p">{{ p }}</option>
+                }
+              </select>
+            } @else {
+              <span class="periodo-none">Sin períodos</span>
+            }
+          </div>
+
+          <div class="detail-head__actions">
+            <button class="btn-primary btn-sm" (click)="openAddHorario()">
+              <span class="material-icons">add</span>
+              Agregar día
+            </button>
+            <button class="btn-ghost btn-sm" (click)="openAddExcepcion()">
+              <span class="material-icons">event_busy</span>
+              Excepción
+            </button>
+          </div>
+        </header>
+
+        <!-- ── Indicador de carga ──────────────────────────────────────── -->
+        @if (loadingAux()) {
+          <div class="detail-loading">
+            <div class="spinner-sm-blue"></div>
+            <span>Cargando horario…</span>
+          </div>
+        }
+
+        @if (!loadingAux()) {
+          <!-- ── Grid semanal ──────────────────────────────────────────── -->
+          <div class="week-grid">
+            @for (cell of gridDias(); track cell.dia.num) {
+              <div
+                class="day-card"
+                [class.day-card--assigned]="cell.horario !== null"
+                [class.day-card--exception]="cell.excepciones.length > 0">
+
+                <!-- Cabecera del día -->
+                <header class="day-card__head">
+                  <div class="day-card__day-info">
+                    <span class="day-card__short">{{ cell.dia.short }}</span>
+                    <span class="day-card__full">{{ cell.dia.label }}</span>
+                  </div>
+
+                  @if (cell.horario) {
+                    <div class="day-card__actions">
+                      <button
+                        class="day-action-btn"
+                        title="Editar"
+                        (click)="openEditHorario(cell.horario)">
+                        <span class="material-icons">edit</span>
+                      </button>
+                      <button
+                        class="day-action-btn day-action-btn--danger"
+                        title="Eliminar"
+                        (click)="requestDeleteHorario(cell.horario)">
+                        <span class="material-icons">delete_outline</span>
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      class="day-add-btn"
+                      (click)="openAddHorario(cell.dia.num)"
+                      title="Asignar turno">
+                      <span class="material-icons">add</span>
+                    </button>
+                  }
+                </header>
+
+                <!-- Contenido del día -->
+                <div class="day-card__body">
+                  @if (cell.horario === null && cell.excepciones.length === 0) {
+                    <div class="day-card__empty">
+                      <span class="material-icons">remove</span>
+                      <span>Sin asignación</span>
+                    </div>
+                  }
+
+                  @if (cell.horario) {
+                    <!-- Turno 1 -->
+                    <div class="shift-chip">
+                      <span class="shift-chip__dot shift-chip__dot--t1"></span>
+                      <div class="shift-chip__info">
+                        <span class="shift-chip__name">{{ getTurnoLabel(cell.horario.id_turno_1) }}</span>
+                        <span class="shift-chip__hour">{{ getTurnoHora(cell.horario.id_turno_1) }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Turno 2 (si existe) -->
+                    @if (cell.horario.id_turno_2) {
+                      <div class="shift-chip shift-chip--t2">
+                        <span class="shift-chip__dot shift-chip__dot--t2"></span>
+                        <div class="shift-chip__info">
+                          <span class="shift-chip__name">{{ getTurnoLabel(cell.horario.id_turno_2) }}</span>
+                          <span class="shift-chip__hour">{{ getTurnoHora(cell.horario.id_turno_2) }}</span>
+                        </div>
+                      </div>
+                    }
+
+                    <!-- Período -->
+                    <span class="day-card__period">
+                      <span class="material-icons">event_note</span>
+                      {{ cell.horario.periodo_vigencia }}
+                    </span>
+                  }
+
+                  <!-- Excepciones -->
+                  @for (exc of cell.excepciones; track exc.id_excepcion) {
+                    <div class="excep-chip"
+                      [class.excep-chip--absence]="exc.tipo === 'ausencia_justificada'"
+                      [class.excep-chip--change]="exc.tipo === 'cambio_turno'">
+                      <span class="material-icons excep-chip__icon">
+                        {{ exc.tipo === 'ausencia_justificada' ? 'event_busy' : 'swap_horiz' }}
+                      </span>
+                      <div class="excep-chip__info">
+                        <span class="excep-chip__tipo">
+                          {{ exc.tipo === 'ausencia_justificada' ? 'Ausencia' : 'Cambio turno' }}
+                        </span>
+                        <span class="excep-chip__fecha">{{ formatFecha(exc.fecha) }}</span>
+                        @if (exc.tipo === 'cambio_turno' && exc.id_turno_nuevo) {
+                          <span class="excep-chip__turno">→ {{ getTurnoLabel(exc.id_turno_nuevo) }}</span>
+                        }
+                      </div>
+                      <button
+                        class="excep-del-btn"
+                        (click)="requestDeleteExcep(exc)"
+                        title="Eliminar excepción">
+                        <span class="material-icons">close</span>
+                      </button>
+                    </div>
+                  }
+                </div>
+
+              </div>
+            }
+          </div>
+
+          <!-- ── Panel de excepciones ──────────────────────────────────── -->
+          @if (sortedExcepciones().length > 0) {
+            <section class="excep-panel">
+              <header class="excep-panel__head">
+                <h4 class="excep-panel__title">
+                  <span class="material-icons">priority_high</span>
+                  Excepciones registradas
+                </h4>
+                <span class="excep-panel__count">{{ sortedExcepciones().length }}</span>
+              </header>
+
+              <div class="excep-table">
+                <div class="excep-table__header">
+                  <span>Fecha</span>
+                  <span>Tipo</span>
+                  <span>Turno nuevo</span>
+                  <span>Motivo</span>
+                  <span></span>
+                </div>
+                @for (exc of sortedExcepciones(); track exc.id_excepcion) {
+                  <div class="excep-table__row">
+                    <span class="excep-table__fecha">{{ formatFecha(exc.fecha) }}</span>
+                    <span
+                      class="excep-badge"
+                      [class.excep-badge--absence]="exc.tipo === 'ausencia_justificada'"
+                      [class.excep-badge--change]="exc.tipo === 'cambio_turno'">
+                      {{ exc.tipo === 'ausencia_justificada' ? 'Ausencia' : 'Cambio' }}
+                    </span>
+                    <span class="excep-table__turno">
+                      @if (exc.id_turno_nuevo) {
+                        {{ getTurnoLabel(exc.id_turno_nuevo) }}
+                      } @else {
+                        —
+                      }
+                    </span>
+                    <span class="excep-table__motivo">{{ exc.motivo || '—' }}</span>
+                    <button
+                      class="btn-icon btn-icon--danger"
+                      (click)="requestDeleteExcep(exc)"
+                      title="Eliminar">
+                      <span class="material-icons">delete_outline</span>
+                    </button>
+                  </div>
+                }
+              </div>
+            </section>
+          }
+
+        }<!-- end !loadingAux -->
+
+      }<!-- end if selectedAux -->
+
+    </section>
+  </div><!-- end hm-layout -->
+}<!-- end !loading -->
+
+
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Agregar / Editar horario                                            -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+@if (showHorarioModal()) {
+  <div class="modal-backdrop" (click)="closeHorarioModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <header class="modal-head">
+        <div class="modal-head__icon">
+          <span class="material-icons">{{ editingHorario() ? 'edit' : 'schedule' }}</span>
+        </div>
+        <div>
+          <h3 class="modal-head__title">
+            {{ editingHorario() ? 'Editar asignación' : 'Asignar turno' }}
+          </h3>
+          <p class="modal-head__sub">{{ selectedAux()?.nombre }}</p>
+        </div>
+        <button class="modal-close" (click)="closeHorarioModal()" [disabled]="savingHorario()">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+
+        <!-- Día -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">today</span>
+            Día de la semana
+          </label>
+          <div class="dias-grid">
+            @for (d of DIAS; track d.num) {
+              <button
+                type="button"
+                class="dia-btn"
+                [class.dia-btn--active]="formHorario.dia_semana === d.num"
+                (click)="formHorario.dia_semana = d.num">
+                {{ d.short }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- Turno(s) -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">schedule</span>
+            Turno(s) a asignar
+          </label>
+          <p class="form-hint">
+            Máximo 2 turnos consecutivos (Turno 1+2 o Turno 2+3). No se permite 1+3.
+          </p>
+          <div class="turnos-options">
+            @for (pair of turnosPairs(); track pair.t1 + ':' + pair.t2) {
+              <label
+                class="turno-option"
+                [class.turno-option--active]="selectedPairKey() === (pair.t1 + ':' + (pair.t2 ?? ''))">
+                <input
+                  type="radio"
+                  [value]="pair.t1 + ':' + (pair.t2 ?? '')"
+                  [ngModel]="selectedPairKey()"
+                  (ngModelChange)="onPairChange($event)">
+                <div class="turno-option__body">
+                  <span class="turno-option__label">{{ pair.label }}</span>
+                  @if (pair.t2) {
+                    <span class="turno-option__badge turno-option__badge--double">Doble turno</span>
+                  }
+                </div>
+              </label>
+            }
+            @if (turnosPairs().length === 0) {
+              <p class="form-hint">No hay turnos disponibles. Crea turnos primero.</p>
+            }
+          </div>
+        </div>
+
+        <!-- Período -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">event_note</span>
+            Período de vigencia
+          </label>
+          <input
+            type="text"
+            class="form-input"
+            placeholder="Ej: 202501"
+            maxlength="6"
+            [(ngModel)]="formHorario.periodo_vigencia">
+          <span class="form-hint">Formato YYYYSS — Año + Semestre. Ej: 202501 = 2025 Sem 1</span>
+        </div>
+
+        @if (errorHorario()) {
+          <div class="form-warning form-warning--error">
+            <span class="material-icons">error</span>
+            {{ errorHorario() }}
+          </div>
+        }
+
+      </div>
+
+      <footer class="modal-foot">
+        <button class="btn-ghost" (click)="closeHorarioModal()" [disabled]="savingHorario()">
+          Cancelar
+        </button>
+        <button class="btn-primary" (click)="saveHorario()" [disabled]="savingHorario()">
+          @if (savingHorario()) {
+            <span class="spinner-sm"></span>
+          } @else {
+            <span class="material-icons">{{ editingHorario() ? 'save' : 'check' }}</span>
+          }
+          {{ savingHorario() ? 'Guardando…' : (editingHorario() ? 'Guardar cambios' : 'Asignar') }}
+        </button>
+      </footer>
+
+    </div>
+  </div>
+}
+
+
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: Agregar excepción                                                   -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+@if (showExcepModal()) {
+  <div class="modal-backdrop" (click)="closeExcepModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+
+      <header class="modal-head">
+        <div class="modal-head__icon modal-head__icon--amber">
+          <span class="material-icons">event_busy</span>
+        </div>
+        <div>
+          <h3 class="modal-head__title">Registrar excepción</h3>
+          <p class="modal-head__sub">{{ selectedAux()?.nombre }}</p>
+        </div>
+        <button class="modal-close" (click)="closeExcepModal()" [disabled]="savingExcep()">
+          <span class="material-icons">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+
+        <!-- Fecha -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">calendar_today</span>
+            Fecha de la excepción
+          </label>
+          <input
+            type="date"
+            class="form-input"
+            [(ngModel)]="formExcep.fecha">
+        </div>
+
+        <!-- Tipo -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">category</span>
+            Tipo de excepción
+          </label>
+          <div class="tipo-options">
+            <label class="tipo-option" [class.tipo-option--active]="formExcep.tipo === 'ausencia_justificada'">
+              <input type="radio" value="ausencia_justificada" [(ngModel)]="formExcep.tipo">
+              <span class="material-icons">event_busy</span>
+              Ausencia justificada
+            </label>
+            <label class="tipo-option" [class.tipo-option--active]="formExcep.tipo === 'cambio_turno'">
+              <input type="radio" value="cambio_turno" [(ngModel)]="formExcep.tipo">
+              <span class="material-icons">swap_horiz</span>
+              Cambio de turno
+            </label>
+          </div>
+        </div>
+
+        <!-- Turno nuevo (solo si cambio_turno) -->
+        @if (formExcep.tipo === 'cambio_turno') {
+          <div class="form-group">
+            <label class="form-label">
+              <span class="material-icons">schedule</span>
+              Turno nuevo
+            </label>
+            <select class="form-input" [(ngModel)]="formExcep.id_turno_nuevo">
+              <option [ngValue]="null">Seleccionar turno…</option>
+              @for (t of turnos(); track t.id_turno) {
+                <option [ngValue]="t.id_turno">
+                  {{ t.nombre_turno }} ({{ t.hora_inicio.slice(0,5) }} – {{ t.hora_fin.slice(0,5) }})
+                </option>
+              }
+            </select>
+          </div>
+        }
+
+        <!-- Motivo -->
+        <div class="form-group">
+          <label class="form-label">
+            <span class="material-icons">notes</span>
+            Motivo (opcional)
+          </label>
+          <textarea
+            class="form-input form-textarea"
+            rows="3"
+            placeholder="Describe el motivo de la excepción…"
+            [(ngModel)]="formExcep.motivo"></textarea>
+        </div>
+
+        @if (errorExcep()) {
+          <div class="form-warning form-warning--error">
+            <span class="material-icons">error</span>
+            {{ errorExcep() }}
+          </div>
+        }
+
+      </div>
+
+      <footer class="modal-foot">
+        <button class="btn-ghost" (click)="closeExcepModal()" [disabled]="savingExcep()">
+          Cancelar
+        </button>
+        <button class="btn-amber" (click)="saveExcepcion()" [disabled]="savingExcep()">
+          @if (savingExcep()) {
+            <span class="spinner-sm"></span>
+          } @else {
+            <span class="material-icons">check</span>
+          }
+          {{ savingExcep() ? 'Guardando…' : 'Registrar excepción' }}
+        </button>
+      </footer>
+
+    </div>
+  </div>
+}
+
+
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- CONFIRM: eliminar horario                                                  -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+@if (showDeleteHorario()) {
+  <div class="modal-backdrop" (click)="showDeleteHorario.set(false)">
+    <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+      <div class="confirm-body">
+        <div class="confirm-icon confirm-icon--danger">
+          <span class="material-icons">delete_outline</span>
+        </div>
+        <h3 class="confirm-title">¿Eliminar horario?</h3>
+        <p class="confirm-msg">
+          Se eliminará la asignación del
+          <strong>{{ getDiaLabel(horarioToDelete()?.dia_semana ?? 1) }}</strong>
+          para el período
+          <strong>{{ horarioToDelete()?.periodo_vigencia }}</strong>.
+          Esta acción no se puede deshacer.
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-ghost" (click)="showDeleteHorario.set(false)" [disabled]="deletingHorario()">
+            Cancelar
+          </button>
+          <button class="btn-danger" (click)="confirmDeleteHorario()" [disabled]="deletingHorario()">
+            @if (deletingHorario()) { <span class="spinner-sm spinner-sm--dark"></span> }
+            Sí, eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+<!-- CONFIRM: eliminar excepción                                                -->
+<!-- ═════════════════════════════════════════════════════════════════════════ -->
+@if (showDeleteExcep()) {
+  <div class="modal-backdrop" (click)="showDeleteExcep.set(false)">
+    <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+      <div class="confirm-body">
+        <div class="confirm-icon confirm-icon--amber">
+          <span class="material-icons">event_busy</span>
+        </div>
+        <h3 class="confirm-title">¿Eliminar excepción?</h3>
+        <p class="confirm-msg">
+          Se eliminará la excepción del
+          <strong>{{ formatFecha(excepToDelete()?.fecha ?? '') }}</strong>.
+        </p>
+        <div class="confirm-actions">
+          <button class="btn-ghost" (click)="showDeleteExcep.set(false)" [disabled]="deletingExcep()">
+            Cancelar
+          </button>
+          <button class="btn-danger" (click)="confirmDeleteExcep()" [disabled]="deletingExcep()">
+            @if (deletingExcep()) { <span class="spinner-sm spinner-sm--dark"></span> }
+            Sí, eliminar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
