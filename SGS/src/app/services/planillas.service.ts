@@ -15,7 +15,7 @@ import { environment } from '../../environments/environment';
 @Injectable({ providedIn: 'root' })
 export class PlanillasService {
   private http = inject(HttpClient);
-  private base = `${environment.apiUrl}/planillas`;
+  private base = environment.apiUrl
 
   // ── Planillas ──────────────────────────────────────────────
 
@@ -45,6 +45,10 @@ export class PlanillasService {
 
   eliminarPlanilla(id: number): Observable<{ detail: string }> {
     return this.http.delete<{ detail: string }>(`${this.base}/planillas/${id}`);
+  }
+
+   getPlanillaActiva(idUsuario: number): Observable<Planilla> {
+    return this.http.get<Planilla>(`${this.base}/planillas/activa/${idUsuario}`);
   }
 
   // ── Horarios de Clase ──────────────────────────────────────
