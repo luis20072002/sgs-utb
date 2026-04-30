@@ -1,0 +1,169 @@
+    <div class="detalle-overlay" (click)="onOverlayClick($event)">
+      <div class="detalle-modal" (click)="$event.stopPropagation()">
+
+        <!-- Header -->
+        <div class="detalle-header">
+          <div class="header-info">
+            <span class="planilla-id">#{{ planilla.id_planillas }}</span>
+            <h2>Detalle de Planilla</h2>
+            <span class="estado-badge" [class]="planilla.estado">{{ planilla.estado }}</span>
+          </div>
+          <button class="close-btn" (click)="cerrar.emit()">&#x2715;</button>
+        </div>
+
+        <!-- Meta info -->
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Edificio</span>
+            <span class="meta-val edificio">{{ getNombreEdificio(planilla.id_edificio) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Turno</span>
+            <span class="meta-val">{{ getNombreTurno(planilla.id_turno) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Período</span>
+            <code class="meta-val">{{ planilla.periodo_vigencia }}</code>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Auxiliar</span>
+            <span class="meta-val">{{ getNombreAuxiliar(planilla.id_usuario) }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Pisos</span>
+            <span class="meta-val">
+              @for (p of getPisos(); track p) {
+                <span class="piso-chip">P{{ p }}</span>
+              }
+            </span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Asignación</span>
+            <span class="meta-val">{{ planilla.fecha_asignacion | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+
+        <!-- Body - clases por aula -->
+        <div class="detalle-body">
+          <div class="body-header">
+            <h3>Clases por Aula</h3>
+            <button class="btn-add-small" (click)="mostrarFormNuevaClase.set(!mostrarFormNuevaClase())">
+              {{ mostrarFormNuevaClase() ? 'Cancelar' : '+ Nueva clase' }}
+            </button>
+          </div>
+
+          <!-- Formulario nueva clase -->
+          @if (mostrarFormNuevaClase()) {
+            <div class="nueva-clase-form">
+              <h4>Agregar clase</h4>
+              <div class="form-row">
+                <div class="field-sm">
+                  <label>Aula</label>
+                  <select [(ngModel)]="nuevaClase.id_aula">
+                    <option value="">Seleccionar</option>
+                    @for (aula of aulasEdificio(); track aula.id_aula) {
+                      <option [value]="aula.id_aula">{{ aula.codigo }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-sm">
+                  <label>Docente</label>
+                  <select [(ngModel)]="nuevaClase.id_docente">
+                    <option value="">Seleccionar</option>
+                    @for (d of docentes(); track d.id_docente) {
+                      <option [value]="d.id_docente">{{ d.nombre }} {{ d.apellido }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-sm">
+                  <label>Curso</label>
+                  <select [(ngModel)]="nuevaClase.id_curso">
+                    <option value="">Seleccionar</option>
+                    @for (c of cursos(); track c.id_curso) {
+                      <option [value]="c.id_curso">{{ c.nombre_curso }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="field-xs">
+                  <label>Inicio</label>
+                  <input type="time" [(ngModel)]="nuevaClase.hora_inicio" />
+                </div>
+                <div class="field-xs">
+                  <label>Fin</label>
+                  <input type="time" [(ngModel)]="nuevaClase.hora_fin" />
+                </div>
+                <div class="field-xs">
+                  <label>Día</label>
+                  <select [(ngModel)]="nuevaClase.dia_semana">
+                    <option [value]="null">-</option>
+                    @for (d of diasSemana; track d.num) {
+                      <option [value]="d.num">{{ d.nombre }}</option>
+                    }
+                  </select>
+                </div>
+              </div>
+              @if (errorNuevaClase()) {
+                <div class="error-sm">{{ errorNuevaClase() }}</div>
+              }
+              <button class="btn-guardar" [disabled]="guardandoClase()" (click)="guardarNuevaClase()">
+                {{ guardandoClase() ? 'Guardando...' : 'Guardar clase' }}
+              </button>
+            </div>
+          }
+
+          <!-- Lista de clases agrupadas por aula -->
+          @if (cargando()) {
+            <div class="loading">Cargando clases...</div>
+          } @else if (aulasConClases().length === 0) {
+            <div class="empty">No hay clases configuradas en esta planilla.</div>
+          } @else {
+            @for (ac of aulasConClases(); track ac.aula?.id_aula) {
+              <div class="aula-seccion">
+                <div class="aula-seccion-header">
+                  <span class="aula-codigo-badge">{{ ac.aula?.codigo ?? 'Aula' }}</span>
+                  <span class="aula-nombre-label">{{ ac.aula?.nombre_aula ?? '' }}</span>
+                  <span class="clases-count">{{ ac.clases.length }} clase{{ ac.clases.length !== 1 ? 's' : '' }}</span>
+                </div>
+
+                @if (ac.clases.length === 0) {
+                  <p class="sin-clases">Sin clases asignadas</p>
+                } @else {
+                  <div class="clases-tabla">
+                    <div class="clases-head">
+                      <span>Docente</span>
+                      <span>Curso</span>
+                      <span>Horario</span>
+                      <span>Día</span>
+                      <span></span>
+                    </div>
+                    @for (clase of ac.clases; track clase.id_horario_clase) {
+                      <div class="clase-item">
+                        <span>{{ getNombreDocente(clase.id_docente) }}</span>
+                        <span>{{ getNombreCurso(clase.id_curso) }}</span>
+                        <span class="horario-cell">{{ clase.hora_inicio }} – {{ clase.hora_fin }}</span>
+                        <span>{{ getDiaSemana(clase.dia_semana) }}</span>
+                        <button class="btn-eliminar-clase" (click)="eliminarClase(clase)" title="Eliminar">&#x2715;</button>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+
+        <!-- Footer -->
+        <div class="detalle-footer">
+          <button class="btn-ghost" (click)="cerrar.emit()">Cerrar</button>
+          <button
+            class="btn-toggle"
+            [class]="planilla.estado === 'activa' ? 'desactivar' : 'activar'"
+            (click)="toggleEstado()"
+          >
+            {{ planilla.estado === 'activa' ? 'Desactivar planilla' : 'Activar planilla' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `

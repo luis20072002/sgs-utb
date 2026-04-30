@@ -9,7 +9,7 @@ import { authGuard, adminGuard, auxiliarGuard } from './guards/auth.guard';
 import { AdminDashboardComponent }    from './pages/admin-panel/dashboard/dashboard';
 import { AdminAuxiliaresComponent }   from './pages/admin-panel/auxiliares/auxiliares';
 import { AdminEdificiosComponent }    from './pages/admin-panel/edificios/edificios';
-import { AdminPlanillasComponent }    from './pages/admin-panel/planillas/planillas';
+import { PlanillasComponent }         from './pages/admin-panel/planillas/planillas.component';
 import { AdminTurnosComponent }       from './pages/admin-panel/turnos/turnos';
 import { AdminDocentesComponent }     from './pages/admin-panel/docentes/docentes';
 import { AdminHorariosComponent }     from './pages/admin-panel/horarios/horarios';
@@ -67,7 +67,7 @@ export const routes: Routes = [
       { path: 'dashboard',    component: AdminDashboardComponent },
       { path: 'auxiliares',   component: AdminAuxiliaresComponent },
       { path: 'edificios',    component: AdminEdificiosComponent },
-      { path: 'planillas',    component: AdminPlanillasComponent },
+      { path: 'planillas',    component: PlanillasComponent },
       { path: 'turnos',       component: AdminTurnosComponent },
       { path: 'docentes',     component: AdminDocentesComponent },
       { path: 'horarios',     component: AdminHorariosComponent },
@@ -75,6 +75,7 @@ export const routes: Routes = [
       { path: 'solicitudes',  component: AdminSolicitudesComponent },
       { path: 'registros',    component: AdminRegistrosComponent },
       { path: 'reportes',     component: AdminReportesComponent },
+      
     ]
   },
 
