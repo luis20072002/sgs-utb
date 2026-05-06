@@ -1,11 +1,480 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
-  </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+<!-- src/app/pages/admin-panel/solicitudes/solicitudes.html -->
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Solicitudes</h2>
+    <p class="page-head__sub">
+      Visualización y gestión de todas las solicitudes reportadas por los auxiliares.
+    </p>
   </div>
 </section>
+
+<!-- ── Tabs por estado ───────────────────────────────────────────────────── -->
+<div class="tabs-bar">
+  <button class="tab" [class.tab--active]="filtroEstado() === 'todos'" (click)="setFiltroEstado('todos')">
+    Todas <span class="tab__count">{{ counts().todos }}</span>
+  </button>
+  <button class="tab" [class.tab--active]="filtroEstado() === 'pendiente'" (click)="setFiltroEstado('pendiente')">
+    <span class="material-icons tab__icon tab__icon--pendiente">schedule</span>
+    Pendientes <span class="tab__count tab__count--pendiente">{{ counts().pendiente }}</span>
+  </button>
+  <button class="tab" [class.tab--active]="filtroEstado() === 'en_proceso'" (click)="setFiltroEstado('en_proceso')">
+    <span class="material-icons tab__icon tab__icon--proceso">autorenew</span>
+    En proceso <span class="tab__count tab__count--proceso">{{ counts().en_proceso }}</span>
+  </button>
+  <button class="tab" [class.tab--active]="filtroEstado() === 'resuelta'" (click)="setFiltroEstado('resuelta')">
+    <span class="material-icons tab__icon tab__icon--resuelta">check_circle</span>
+    Resueltas <span class="tab__count tab__count--resuelta">{{ counts().resuelta }}</span>
+  </button>
+</div>
+
+<!-- ── Toolbar: búsqueda + filtros ──────────────────────────────────────── -->
+<section class="toolbar">
+  <div class="toolbar__search">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="search"
+        class="search-input"
+        placeholder="Buscar por descripción, aula, auxiliar o edificio…"
+        [value]="searchTerm()"
+        (input)="setSearch($any($event.target).value)">
+    </div>
+  </div>
+
+  <div class="toolbar__filters">
+    <!-- Filtro edificio -->
+    <select class="filter-select"
+            [value]="filtroEdificio() ?? ''"
+            (change)="setFiltroEdificio($any($event.target).value)">
+      <option value="">Todos los edificios</option>
+      <option *ngFor="let ed of edificios()" [value]="ed.id_edificio">
+        {{ ed.nombre }} ({{ ed.codigo }})
+      </option>
+    </select>
+
+    <!-- Rango de fechas -->
+    <div class="date-range">
+      <input
+        type="date"
+        class="filter-date"
+        title="Fecha inicio"
+        [value]="fechaInicio()"
+        (change)="setFechaInicio($any($event.target).value)">
+      <span class="date-range__sep">—</span>
+      <input
+        type="date"
+        class="filter-date"
+        title="Fecha fin"
+        [value]="fechaFin()"
+        (change)="setFechaFin($any($event.target).value)">
+    </div>
+
+    <!-- Limpiar filtros -->
+    <button
+      class="btn-ghost btn-sm"
+      *ngIf="hayFiltrosActivos()"
+      (click)="limpiarFiltros()"
+      title="Limpiar filtros">
+      <span class="material-icons">filter_alt_off</span>
+      Limpiar
+    </button>
+  </div>
+</section>
+
+<!-- ── Loading ──────────────────────────────────────────────────────────── -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando solicitudes…</p>
+</div>
+
+<!-- ── Error ────────────────────────────────────────────────────────────── -->
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button class="btn-ghost" (click)="cargar()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<!-- ── Empty ────────────────────────────────────────────────────────────── -->
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && solicitudes().length === 0">
+  <span class="material-icons">support_agent</span>
+  <h3>No hay solicitudes registradas</h3>
+  <p>Cuando los auxiliares reporten solicitudes desde sus planillas, aparecerán aquí.</p>
+</div>
+
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && solicitudes().length > 0">
+  <span class="material-icons">search_off</span>
+  <h3>Sin coincidencias</h3>
+  <p>Prueba con otros términos o cambia los filtros activos.</p>
+  <button class="btn-ghost btn-sm" (click)="limpiarFiltros()">
+    <span class="material-icons">filter_alt_off</span> Limpiar filtros
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Tabla de solicitudes                                                    -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="data-section" *ngIf="!loading() && !errorMsg() && filteredAll().length > 0">
+
+  <!-- Desktop: tabla -->
+  <div class="table-wrap hide-on-mobile">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Aula / Edificio</th>
+          <th>Auxiliar</th>
+          <th>Descripción</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th class="th-actions">Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let s of pagedRows()">
+          <td class="td-id">#{{ s.id_solicitud }}</td>
+          <td>
+            <div class="aula-cell">
+              <span class="aula-cell__codigo">
+                {{ s.aula?.codigo ?? '—' }}
+              </span>
+              <span class="aula-cell__edificio" *ngIf="s.edificio">
+                <span class="material-icons">business</span>
+                {{ s.edificio.nombre }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="aux-cell" *ngIf="s.auxiliar; else sinAux">
+              <div class="aux-cell__avatar">{{ s.auxiliar.nombre[0]?.toUpperCase() }}</div>
+              <span class="aux-cell__nombre">{{ s.auxiliar.nombre }}</span>
+            </div>
+            <ng-template #sinAux>
+              <span class="text-muted">—</span>
+            </ng-template>
+          </td>
+          <td class="td-desc">
+            <p class="desc-text">{{ s.descripcion }}</p>
+            <p class="nota-text" *ngIf="s.nota_resolucion">
+              <span class="material-icons">notes</span>{{ s.nota_resolucion }}
+            </p>
+          </td>
+          <td>
+            <span class="estado-pill estado-pill--{{ s.estado }}">
+              <span class="material-icons">{{ estadoIcon(s.estado) }}</span>
+              {{ estadoLabel(s.estado) }}
+            </span>
+          </td>
+          <td class="td-fecha">
+            <span>{{ formatFecha(s.fecha_solicitud) }}</span>
+            <span class="fecha-res" *ngIf="s.fecha_resolucion">
+              <span class="material-icons">check</span>
+              {{ formatFecha(s.fecha_resolucion) }}
+            </span>
+          </td>
+          <td class="td-actions">
+            <button
+              class="btn-icon"
+              [class.btn-icon--disabled]="!puedeEditarEstado(s)"
+              [disabled]="!puedeEditarEstado(s)"
+              (click)="openEstadoModal(s)"
+              [title]="puedeEditarEstado(s) ? 'Cambiar estado' : 'Solicitud ya resuelta'">
+              <span class="material-icons">edit_note</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="cards-list show-on-mobile">
+    <article class="sol-card" *ngFor="let s of pagedRows()">
+      <div class="sol-card__head">
+        <span class="estado-pill estado-pill--{{ s.estado }}">
+          <span class="material-icons">{{ estadoIcon(s.estado) }}</span>
+          {{ estadoLabel(s.estado) }}
+        </span>
+        <span class="sol-card__id">#{{ s.id_solicitud }}</span>
+      </div>
+
+      <p class="sol-card__desc">{{ s.descripcion }}</p>
+
+      <div class="sol-card__meta">
+        <span *ngIf="s.aula">
+          <span class="material-icons">meeting_room</span> {{ s.aula.codigo }}
+        </span>
+        <span *ngIf="s.edificio">
+          <span class="material-icons">business</span> {{ s.edificio.nombre }}
+        </span>
+        <span *ngIf="s.auxiliar">
+          <span class="material-icons">person</span> {{ s.auxiliar.nombre }}
+        </span>
+        <span>
+          <span class="material-icons">schedule</span> {{ formatFecha(s.fecha_solicitud) }}
+        </span>
+      </div>
+
+      <div class="sol-card__nota" *ngIf="s.nota_resolucion">
+        <span class="material-icons">notes</span> {{ s.nota_resolucion }}
+      </div>
+
+      <div class="sol-card__actions" *ngIf="puedeEditarEstado(s)">
+        <button class="btn-primary btn-sm" (click)="openEstadoModal(s)">
+          <span class="material-icons">edit_note</span> Cambiar estado
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages() > 1">
+    <span class="pagination__info">
+      Página {{ pageIndex() + 1 }} de {{ totalPages() }}
+      · {{ filteredAll().length }} resultado{{ filteredAll().length !== 1 ? 's' : '' }}
+    </span>
+    <div class="pagination__controls">
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() === 0" (click)="pagePrev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() >= totalPages() - 1" (click)="pageNext()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Sección de análisis visual                                              -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="analytics" *ngIf="!loading() && !errorMsg()">
+  <header class="analytics__head">
+    <div>
+      <h3 class="analytics__title">
+        <span class="material-icons">analytics</span>
+        Análisis de solicitudes
+      </h3>
+      <p class="analytics__sub">Indicadores derivados de todas las solicitudes del sistema.</p>
+    </div>
+
+    <div class="analytics__filters">
+      <!-- Edificio filtro stats -->
+      <select class="filter-select filter-select--sm"
+              [value]="statsEdificio() ?? ''"
+              (change)="setStatsEdificio($any($event.target).value)">
+        <option value="">Todos los edificios</option>
+        <option *ngFor="let ed of edificios()" [value]="ed.id_edificio">
+          {{ ed.nombre }}
+        </option>
+      </select>
+
+      <div class="date-input">
+        <label>Desde</label>
+        <input type="date" [value]="rangeStart()" (change)="setStatsRangeStart($any($event.target).value)">
+      </div>
+      <div class="date-input">
+        <label>Hasta</label>
+        <input type="date" [value]="rangeEnd()" (change)="setStatsRangeEnd($any($event.target).value)">
+      </div>
+    </div>
+  </header>
+
+  <!-- Empty stats -->
+  <div class="state-card state-card--empty" *ngIf="!hasStatsData()">
+    <span class="material-icons">insights</span>
+    <h3>Sin datos suficientes</h3>
+    <p>Cuando los auxiliares registren solicitudes, aquí aparecerán las gráficas.</p>
+  </div>
+
+  <!-- Charts grid -->
+  <div class="charts-grid" *ngIf="hasStatsData()">
+
+    <!-- Solicitudes por mes -->
+    <article class="chart-card chart-card--span2">
+      <header class="chart-card__head">
+        <h4>Solicitudes por mes</h4>
+        <p>Volumen total de solicitudes registradas por mes en el rango seleccionado.</p>
+      </header>
+      <div class="chart-card__body chart-card__body--lg">
+        <canvas baseChart
+          [data]="porMesData()"
+          [options]="porMesOpts"
+          type="bar"></canvas>
+      </div>
+    </article>
+
+    <!-- Aulas con más solicitudes -->
+    <article class="chart-card">
+      <header class="chart-card__head">
+        <h4>Aulas con más solicitudes</h4>
+        <p>Top 8 aulas con mayor frecuencia de solicitudes reportadas.</p>
+      </header>
+      <div class="chart-card__body chart-card__body--lg">
+        <canvas baseChart
+          [data]="topAulasData()"
+          [options]="topAulasOpts"
+          type="bar"></canvas>
+      </div>
+    </article>
+
+    <!-- Distribución por estado -->
+    <article class="chart-card">
+      <header class="chart-card__head">
+        <h4>Distribución por estado</h4>
+        <p>Proporción de solicitudes pendientes, en proceso y resueltas.</p>
+      </header>
+      <div class="chart-card__body chart-card__body--donut">
+        <canvas baseChart
+          [data]="distribucionData()"
+          [options]="distribucionOpts"
+          type="doughnut"></canvas>
+      </div>
+    </article>
+
+    <!-- Tiempo promedio de resolución -->
+    <article class="chart-card chart-card--span2">
+      <header class="chart-card__head">
+        <h4>Tiempo promedio de resolución</h4>
+        <p>Días promedio entre la creación y la resolución de solicitudes, por mes.</p>
+      </header>
+      <div class="chart-card__body">
+        <canvas baseChart
+          [data]="tiempoResData()"
+          [options]="tiempoResOpts"
+          type="line"></canvas>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Modal: cambiar estado de solicitud                                      -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showEstadoModal()" (click)="closeEstadoModal()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">edit_note</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">Cambiar estado</h3>
+        <p class="modal-head__sub">
+          Solicitud #{{ editingEstado()?.id_solicitud }}
+          <span *ngIf="editingEstado()?.aula"> · {{ editingEstado()?.aula?.codigo }}</span>
+        </p>
+      </div>
+      <button class="modal-close" (click)="closeEstadoModal()" [disabled]="savingEstado()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <!-- Contexto de la solicitud -->
+    <div class="modal-context" *ngIf="editingEstado()">
+      <p class="modal-context__desc">{{ editingEstado()!.descripcion }}</p>
+      <div class="modal-context__tags">
+        <span class="context-tag">
+          <span class="material-icons">flag</span>
+          Estado actual:
+          <strong>{{ estadoLabel(editingEstado()!.estado) }}</strong>
+        </span>
+        <span class="context-tag" *ngIf="editingEstado()!.auxiliar">
+          <span class="material-icons">person</span>
+          {{ editingEstado()!.auxiliar!.nombre }}
+        </span>
+        <span class="context-tag" *ngIf="editingEstado()!.edificio">
+          <span class="material-icons">business</span>
+          {{ editingEstado()!.edificio!.nombre }}
+        </span>
+      </div>
+    </div>
+
+    <form [formGroup]="estadoForm" (ngSubmit)="guardarEstado()" class="modal-body">
+
+      <!-- Selector de nuevo estado -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('estado')">
+        <label class="form-label">
+          <span class="material-icons">swap_horiz</span>
+          Nuevo estado
+        </label>
+        <div class="estado-options">
+          <label
+            *ngFor="let opt of estadosSiguientes(editingEstado()?.estado ?? '')"
+            class="estado-radio"
+            [class.estado-radio--active]="estadoForm.get('estado')?.value === opt.value">
+            <input type="radio" [value]="opt.value" formControlName="estado">
+            <span class="material-icons">{{ estadoIcon(opt.value) }}</span>
+            <span>{{ opt.label }}</span>
+          </label>
+        </div>
+        <span class="form-error" *ngIf="fieldHasError('estado')">
+          <span class="material-icons">error_outline</span> Selecciona un estado
+        </span>
+      </div>
+
+      <!-- Nota de resolución (requerida si pasa a "resuelta") -->
+      <div class="form-group"
+           [class.form-group--error]="fieldHasError('nota_resolucion')"
+           *ngIf="notaRequerida()">
+        <label class="form-label">
+          <span class="material-icons">notes</span>
+          Nota de resolución <span class="form-required">*</span>
+        </label>
+        <textarea
+          class="form-input form-textarea"
+          rows="3"
+          placeholder="Describe cómo se resolvió esta solicitud…"
+          formControlName="nota_resolucion"></textarea>
+        <span class="form-error" *ngIf="fieldHasError('nota_resolucion')">
+          <span class="material-icons">error_outline</span> La nota es obligatoria al marcar como resuelta
+        </span>
+      </div>
+
+      <!-- Nota opcional para "en proceso" -->
+      <div class="form-group"
+           *ngIf="estadoForm.get('estado')?.value === 'en_proceso'">
+        <label class="form-label">
+          <span class="material-icons">notes</span>
+          Nota (opcional)
+        </label>
+        <textarea
+          class="form-input form-textarea"
+          rows="2"
+          placeholder="Agrega observaciones si lo deseas…"
+          formControlName="nota_resolucion"></textarea>
+      </div>
+
+      <!-- Advertencia de irreversibilidad -->
+      <div class="form-warning" *ngIf="estadoForm.get('estado')?.value === 'resuelta'">
+        <span class="material-icons">warning</span>
+        Una vez marcada como <strong>resuelta</strong>, la solicitud no podrá cambiar de estado.
+      </div>
+
+      <!-- Error global -->
+      <div class="form-warning form-warning--error" *ngIf="saveEstadoError()">
+        <span class="material-icons">error</span> {{ saveEstadoError() }}
+      </div>
+
+    </form>
+
+    <footer class="modal-foot">
+      <button class="btn-ghost" (click)="closeEstadoModal()" [disabled]="savingEstado()">
+        Cancelar
+      </button>
+      <button class="btn-primary" (click)="guardarEstado()" [disabled]="savingEstado()">
+        <span class="spinner-sm" *ngIf="savingEstado()"></span>
+        <span class="material-icons" *ngIf="!savingEstado()">check</span>
+        <span>{{ savingEstado() ? 'Guardando…' : 'Confirmar cambio' }}</span>
+      </button>
+    </footer>
+
+  </div>
+</div>
