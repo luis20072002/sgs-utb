@@ -1,11 +1,332 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/auxiliares/auxiliares.html -->
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Auxiliares</h2>
+    <p class="page-head__sub">
+      Gestión de usuarios auxiliares: creación, edición, asignación de edificio y control de estado.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+  <button type="button" class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">person_add</span>
+    <span>Nuevo auxiliar</span>
+  </button>
+</section>
+
+<!-- ── Toolbar ──────────────────────────────────────────────────────────── -->
+<section class="toolbar">
+  <div class="toolbar__search">
+    <div class="search-box">
+      <span class="material-icons">search</span>
+      <input
+        type="search"
+        class="search-input"
+        placeholder="Buscar por nombre o correo…"
+        [value]="searchTerm()"
+        (input)="setSearch($any($event.target).value)">
+    </div>
+  </div>
+
+  <div class="toolbar__filters">
+    <div class="chip-group">
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'todos'"
+              (click)="setFiltroEstado('todos')">
+        Todos
+      </button>
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'activos'"
+              (click)="setFiltroEstado('activos')">
+        Activos
+      </button>
+      <button type="button" class="chip"
+              [class.chip--active]="filtroEstado() === 'inactivos'"
+              (click)="setFiltroEstado('inactivos')">
+        Inactivos
+      </button>
+    </div>
   </div>
 </section>
+
+<!-- ── Loading ──────────────────────────────────────────────────────────── -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando auxiliares…</p>
+</div>
+
+<!-- ── Error ────────────────────────────────────────────────────────────── -->
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button class="btn-ghost" (click)="cargar()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<!-- ── Empty: sin auxiliares ─────────────────────────────────────────────── -->
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && auxiliares().length === 0">
+  <span class="material-icons">group_off</span>
+  <h3>Aún no hay auxiliares registrados</h3>
+  <p>Crea el primer usuario auxiliar para que pueda acceder al sistema y gestionar sus edificios.</p>
+  <button class="btn-primary" (click)="openCreate()">
+    <span class="material-icons">person_add</span>
+    <span>Crear primer auxiliar</span>
+  </button>
+</div>
+
+<!-- ── Empty: sin coincidencias ──────────────────────────────────────────── -->
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && filteredAll().length === 0 && auxiliares().length > 0">
+  <span class="material-icons">search_off</span>
+  <h3>Sin coincidencias</h3>
+  <p>Intenta con otros términos de búsqueda o cambia el filtro de estado.</p>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Tabla / cards                                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="data-section" *ngIf="!loading() && !errorMsg() && filteredAll().length > 0">
+
+  <!-- Desktop: tabla -->
+  <div class="table-wrap hide-on-mobile">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Auxiliar</th>
+          <th>Correo</th>
+          <th>Edificio asignado</th>
+          <th>Estado</th>
+          <th class="th-actions">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of pagedRows()">
+          <td>
+            <div class="user-cell">
+              <div class="user-cell__avatar">{{ initials(a) }}</div>
+              <div class="user-cell__info">
+                <span class="user-cell__name">{{ a.nombre }}</span>
+                <span class="user-cell__id">ID #{{ a.id_usuario }}</span>
+              </div>
+            </div>
+          </td>
+          <td>{{ a.correo }}</td>
+          <td>
+            <span class="edificio-tag" [class.edificio-tag--none]="!a.id_edificio">
+              <span class="material-icons">{{ a.id_edificio ? 'business' : 'business_center' }}</span>
+              {{ edificioNombre(a.id_edificio) }}
+            </span>
+          </td>
+          <td>
+            <span class="status-pill"
+                  [class.status-pill--on]="a.estado"
+                  [class.status-pill--off]="!a.estado">
+              <span class="status-dot"></span>
+              {{ a.estado ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td class="td-actions">
+            <button class="btn-icon" (click)="openEdit(a)" title="Editar">
+              <span class="material-icons">edit</span>
+            </button>
+            <button
+              class="btn-icon"
+              [class.btn-icon--danger]="a.estado"
+              [class.btn-icon--success]="!a.estado"
+              (click)="requestToggle(a)"
+              [title]="a.estado ? 'Desactivar' : 'Activar'">
+              <span class="material-icons">{{ a.estado ? 'block' : 'check_circle' }}</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="cards-list show-on-mobile">
+    <article class="aux-card" *ngFor="let a of pagedRows()">
+      <div class="aux-card__head">
+        <div class="user-cell__avatar">{{ initials(a) }}</div>
+        <div class="aux-card__info">
+          <h4 class="aux-card__name">{{ a.nombre }}</h4>
+          <span class="aux-card__id">ID #{{ a.id_usuario }}</span>
+        </div>
+        <span class="status-pill"
+              [class.status-pill--on]="a.estado"
+              [class.status-pill--off]="!a.estado">
+          <span class="status-dot"></span>
+          {{ a.estado ? 'Activo' : 'Inactivo' }}
+        </span>
+      </div>
+      <div class="aux-card__body">
+        <p>
+          <span class="material-icons">email</span>
+          {{ a.correo }}
+        </p>
+        <p>
+          <span class="material-icons">business</span>
+          {{ edificioNombre(a.id_edificio) }}
+        </p>
+      </div>
+      <div class="aux-card__actions">
+        <button class="btn-ghost btn-sm" (click)="openEdit(a)">
+          <span class="material-icons">edit</span> Editar
+        </button>
+        <button
+          class="btn-ghost btn-sm"
+          [class.btn-ghost--danger]="a.estado"
+          (click)="requestToggle(a)">
+          <span class="material-icons">{{ a.estado ? 'block' : 'check_circle' }}</span>
+          {{ a.estado ? 'Desactivar' : 'Activar' }}
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages() > 1">
+    <span class="pagination__info">
+      Página {{ pageIndex() + 1 }} de {{ totalPages() }}
+      · {{ filteredAll().length }} resultado{{ filteredAll().length !== 1 ? 's' : '' }}
+    </span>
+    <div class="pagination__controls">
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() === 0" (click)="pagePrev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="btn-ghost btn-sm" [disabled]="pageIndex() >= totalPages() - 1" (click)="pageNext()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Modal: crear / editar auxiliar                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showFormModal()" (click)="closeForm()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+
+    <header class="modal-head">
+      <div class="modal-head__icon">
+        <span class="material-icons">{{ editing() ? 'manage_accounts' : 'person_add' }}</span>
+      </div>
+      <div>
+        <h3 class="modal-head__title">{{ editing() ? 'Editar auxiliar' : 'Nuevo auxiliar' }}</h3>
+        <p class="modal-head__sub">{{ editing() ? 'Actualiza los datos del auxiliar.' : 'Registra un nuevo usuario con rol auxiliar.' }}</p>
+      </div>
+      <button class="modal-close" (click)="closeForm()" [disabled]="saving()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="save()" class="modal-body">
+
+      <!-- Nombre -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('nombre')">
+        <label class="form-label">
+          <span class="material-icons">person</span>Nombre completo
+        </label>
+        <input
+          type="text"
+          class="form-input"
+          placeholder="Ej: Carlos Pérez"
+          formControlName="nombre"
+          autocomplete="off">
+        <span class="form-error" *ngIf="fieldHasError('nombre')">
+          <span class="material-icons">error_outline</span> Mínimo 2 caracteres
+        </span>
+      </div>
+
+      <!-- Correo -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('correo')">
+        <label class="form-label">
+          <span class="material-icons">email</span>Correo electrónico
+        </label>
+        <input
+          type="email"
+          class="form-input"
+          placeholder="Ej: carlos.perez@sgs.edu.co"
+          formControlName="correo"
+          autocomplete="off">
+        <span class="form-error" *ngIf="fieldHasError('correo')">
+          <span class="material-icons">error_outline</span> Correo inválido
+        </span>
+      </div>
+
+      <!-- Contraseña -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('pwsd')">
+        <label class="form-label">
+          <span class="material-icons">lock</span>
+          {{ editing() ? 'Nueva contraseña' : 'Contraseña' }}
+        </label>
+        <input
+          type="password"
+          class="form-input"
+          [placeholder]="editing() ? 'Dejar en blanco para no cambiarla' : 'Mínimo 6 caracteres'"
+          formControlName="pwsd"
+          autocomplete="new-password">
+        <span class="form-error" *ngIf="fieldHasError('pwsd')">
+          <span class="material-icons">error_outline</span>
+          {{ editing() ? 'Mínimo 6 caracteres si deseas cambiarla' : 'Contraseña requerida (mínimo 6 caracteres)' }}
+        </span>
+      </div>
+
+      <!-- Edificio asignado -->
+      <div class="form-group">
+        <label class="form-label">
+          <span class="material-icons">business</span>Edificio asignado
+        </label>
+        <select class="form-input form-select" formControlName="id_edificio">
+          <option [ngValue]="null">Sin asignar</option>
+          <option *ngFor="let ed of edificios()" [ngValue]="ed.id_edificio">
+            {{ ed.nombre }} ({{ ed.codigo }})
+          </option>
+        </select>
+        <span class="form-hint">Puedes asignarlo o modificarlo después.</span>
+      </div>
+
+      <!-- Error global -->
+      <div class="form-warning form-warning--error" *ngIf="saveError()">
+        <span class="material-icons">error</span> {{ saveError() }}
+      </div>
+
+      <!-- Nota de rol -->
+      <div class="role-note" *ngIf="!editing()">
+        <span class="material-icons">info</span>
+        El usuario se creará con rol <strong>auxiliar</strong> y podrá iniciar sesión en el sistema.
+      </div>
+
+    </form>
+
+    <footer class="modal-foot">
+      <button class="btn-ghost" (click)="closeForm()" [disabled]="saving()">Cancelar</button>
+      <button class="btn-primary" (click)="save()" [disabled]="saving()">
+        <span class="spinner-sm" *ngIf="saving()"></span>
+        <span class="material-icons" *ngIf="!saving()">{{ editing() ? 'save' : 'check' }}</span>
+        <span>{{ saving() ? 'Guardando…' : (editing() ? 'Guardar cambios' : 'Crear auxiliar') }}</span>
+      </button>
+    </footer>
+
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Confirm: activar / desactivar                                           -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<app-confirm-dialog
+  [open]="showToggleDialog()"
+  [variant]="toggleTarget()?.estado ? 'danger' : 'info'"
+  [title]="toggleTarget()?.estado ? '¿Desactivar auxiliar?' : '¿Activar auxiliar?'"
+  [message]="(toggleTarget()?.nombre ?? '') + (toggleTarget()?.estado
+    ? ' perderá el acceso al sistema. Su historial se conservará.'
+    : ' recuperará el acceso al sistema.') + (toggleError() ? ' — ' + toggleError() : '')"
+  [confirmText]="toggleTarget()?.estado ? 'Sí, desactivar' : 'Sí, activar'"
+  [loading]="toggling()"
+  (confirm)="confirmToggle()"
+  (cancel)="cancelToggle()">
+</app-confirm-dialog>
