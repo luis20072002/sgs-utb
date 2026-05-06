@@ -1,11 +1,488 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/registros/registros.html -->
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CABECERA + KPIs RÁPIDOS                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Registros de Aula</h2>
+    <p class="page-head__sub">
+      Registros completados por los auxiliares durante sus recorridos. Solo lectura.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+  <div class="page-head__kpis">
+    <div class="kpi-chip kpi-chip--total">
+      <span class="material-icons">assignment</span>
+      <span>{{ kpiTotal() }} registro{{ kpiTotal() !== 1 ? 's' : '' }}</span>
+    </div>
+    <div class="kpi-chip kpi-chip--ok">
+      <span class="material-icons">how_to_reg</span>
+      <span>{{ kpiAsistencia() }}% asistencia</span>
+    </div>
+    <div class="kpi-chip kpi-chip--av">
+      <span class="material-icons">videocam</span>
+      <span>{{ kpiAudiovisual() }}% AV</span>
+    </div>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FILTROS                                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="toolbar">
+
+  <!-- Búsqueda: aula -->
+  <div class="search-box">
+    <span class="material-icons">meeting_room</span>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Buscar aula…"
+      [value]="filtroAula()"
+      (input)="setFiltroAula($any($event.target).value)">
+  </div>
+
+  <!-- Búsqueda: docente -->
+  <div class="search-box">
+    <span class="material-icons">person</span>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Buscar docente…"
+      [value]="filtroDocente()"
+      (input)="setFiltroDocente($any($event.target).value)">
+  </div>
+
+  <!-- Edificio -->
+  <select class="filter-select" [value]="filtroEdificio()" (change)="setFiltroEdificio($any($event.target).value)">
+    <option value="">Todos los edificios</option>
+    <option *ngFor="let e of edificios()" [value]="e.id_edificio">{{ e.nombre }}</option>
+  </select>
+
+  <!-- Piso -->
+  <select class="filter-select" [value]="filtroPiso()" (change)="setFiltroPiso($any($event.target).value)" [disabled]="!filtroEdificio()">
+    <option value="">Todos los pisos</option>
+    <option *ngFor="let p of pisosDisponibles()" [value]="p">Piso {{ p }}</option>
+  </select>
+
+  <!-- Turno -->
+  <select class="filter-select" [value]="filtroTurno()" (change)="setFiltroTurno($any($event.target).value)">
+    <option value="">Todos los turnos</option>
+    <option *ngFor="let t of turnos()" [value]="t.id_turno">{{ t.nombre_turno }}</option>
+  </select>
+
+  <!-- Rango fechas -->
+  <div class="date-range">
+    <label class="date-range__label">Desde</label>
+    <input type="date" class="filter-date" [value]="filtroDesde()" (change)="setFiltroDesde($any($event.target).value)">
+    <label class="date-range__label">Hasta</label>
+    <input type="date" class="filter-date" [value]="filtroHasta()" (change)="setFiltroHasta($any($event.target).value)">
+  </div>
+
+  <!-- Limpiar -->
+  <button type="button" class="btn-ghost btn-sm" (click)="limpiarFiltros()">
+    <span class="material-icons">filter_alt_off</span>
+    Limpiar
+  </button>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ESTADOS: loading / error / vacío                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando registros…</p>
+</div>
+
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button class="btn-ghost" (click)="cargarRegistros()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && registros().length === 0">
+  <span class="material-icons">history</span>
+  <h3>Sin registros</h3>
+  <p>Aún no hay registros de aula en el sistema.</p>
+</div>
+
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && registros().length > 0 && filteredAll().length === 0">
+  <span class="material-icons">search_off</span>
+  <h3>Sin coincidencias</h3>
+  <p>Ajusta los filtros para ver resultados.</p>
+  <button class="btn-ghost" (click)="limpiarFiltros()">
+    <span class="material-icons">filter_alt_off</span> Limpiar filtros
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TABLA DE REGISTROS                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="data-section" *ngIf="!loading() && !errorMsg() && filteredAll().length > 0">
+
+  <!-- Desktop: tabla -->
+  <div class="table-wrap hide-on-mobile">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Aula</th>
+          <th>Edificio / Piso</th>
+          <th>Docente</th>
+          <th>Curso</th>
+          <th>Turno</th>
+          <th>Asistencia</th>
+          <th>Audiovisual</th>
+          <th>Fecha</th>
+          <th class="th-actions">Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of pagedRows()">
+          <td>
+            <div class="aula-cell">
+              <span class="aula-cell__codigo">{{ r.aula_codigo ?? '—' }}</span>
+              <span class="aula-cell__nombre">{{ r.aula_nombre ?? '' }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="tag-edif">{{ nombreEdificio(r.id_edificio) }}</span>
+            <span class="tag-piso" *ngIf="r.piso">Piso {{ r.piso }}</span>
+          </td>
+          <td>{{ nombreDocente(r) }}</td>
+          <td class="td-curso">{{ r.curso_nombre ?? '—' }}</td>
+          <td>{{ r.nombre_turno ?? nombreTurno(r.id_turno) }}</td>
+          <td>
+            <span class="badge-bool"
+              [class.badge-bool--yes]="r.asistencia_docente"
+              [class.badge-bool--no]="!r.asistencia_docente">
+              <span class="material-icons">{{ r.asistencia_docente ? 'check_circle' : 'cancel' }}</span>
+              {{ r.asistencia_docente ? 'Sí' : 'No' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge-bool"
+              [class.badge-bool--yes]="r.uso_audiovisual"
+              [class.badge-bool--no]="!r.uso_audiovisual">
+              <span class="material-icons">{{ r.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
+              {{ r.uso_audiovisual ? 'Sí' : 'No' }}
+            </span>
+          </td>
+          <td>
+            <span class="fecha-cell">{{ formatFecha(r.fecha_registro) }}</span>
+            <span class="hora-cell">{{ formatHora(r.fecha_registro) }}</span>
+          </td>
+          <td class="td-actions">
+            <button class="btn-icon" (click)="verDetalle(r)" title="Ver detalle">
+              <span class="material-icons">visibility</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="cards-list show-on-mobile">
+    <article class="registro-card" *ngFor="let r of pagedRows()">
+      <div class="registro-card__head">
+        <div class="registro-card__aula">
+          <span class="material-icons">meeting_room</span>
+          {{ r.aula_codigo ?? 'Aula' }}
+        </div>
+        <span class="registro-card__fecha">{{ formatFecha(r.fecha_registro) }}</span>
+      </div>
+
+      <div class="registro-card__body">
+        <div class="registro-card__info">
+          <span class="meta-item">
+            <span class="material-icons">person</span>
+            {{ nombreDocente(r) }}
+          </span>
+          <span class="meta-item" *ngIf="r.curso_nombre">
+            <span class="material-icons">menu_book</span>
+            {{ r.curso_nombre }}
+          </span>
+          <span class="meta-item">
+            <span class="material-icons">business</span>
+            {{ nombreEdificio(r.id_edificio) }}
+            <ng-container *ngIf="r.piso"> · Piso {{ r.piso }}</ng-container>
+          </span>
+        </div>
+
+        <div class="registro-card__badges">
+          <span class="badge-bool"
+            [class.badge-bool--yes]="r.asistencia_docente"
+            [class.badge-bool--no]="!r.asistencia_docente">
+            <span class="material-icons">how_to_reg</span>
+            Docente {{ r.asistencia_docente ? 'asistió' : 'no asistió' }}
+          </span>
+          <span class="badge-bool"
+            [class.badge-bool--yes]="r.uso_audiovisual"
+            [class.badge-bool--no]="!r.uso_audiovisual">
+            <span class="material-icons">{{ r.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
+            AV {{ r.uso_audiovisual ? 'en uso' : 'sin uso' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="registro-card__footer">
+        <button class="btn-ghost btn-sm" (click)="verDetalle(r)">
+          <span class="material-icons">visibility</span>
+          Ver detalle
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages() > 1">
+    <button class="pag-btn" (click)="pagePrev()" [disabled]="pageIndex() === 0">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <span class="pag-info">Página {{ pageIndex() + 1 }} de {{ totalPages() }}</span>
+    <button class="pag-btn" (click)="pageNext()" [disabled]="pageIndex() >= totalPages() - 1">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN ANALÍTICA / GRÁFICAS                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="analytics-section" *ngIf="!loading() && !errorMsg()">
+
+  <div class="analytics-header">
+    <h3 class="analytics-title">
+      <span class="material-icons">bar_chart</span>
+      Análisis de registros
+    </h3>
+
+    <!-- Filtros de gráficas -->
+    <div class="analytics-filters">
+      <!-- Granularidad -->
+      <div class="chip-group">
+        <button type="button" class="chip" [class.chip--active]="granularidad() === 'dia'"  (click)="setGranularidad('dia')">Día</button>
+        <button type="button" class="chip" [class.chip--active]="granularidad() === 'mes'"  (click)="setGranularidad('mes')">Mes</button>
+        <button type="button" class="chip" [class.chip--active]="granularidad() === 'anio'" (click)="setGranularidad('anio')">Año</button>
+      </div>
+
+      <select class="filter-select filter-select--sm" [value]="grafEdificio()" (change)="setGrafEdificio($any($event.target).value)">
+        <option value="">Todos los edificios</option>
+        <option *ngFor="let e of edificios()" [value]="e.id_edificio">{{ e.nombre }}</option>
+      </select>
+
+      <select class="filter-select filter-select--sm" [value]="grafTurno()" (change)="setGrafTurno($any($event.target).value)">
+        <option value="">Todos los turnos</option>
+        <option *ngFor="let t of turnos()" [value]="t.id_turno">{{ t.nombre_turno }}</option>
+      </select>
+
+      <div class="date-range date-range--sm">
+        <label class="date-range__label">Desde</label>
+        <input type="date" class="filter-date" [value]="grafDesde()" (change)="setGrafDesde($any($event.target).value)">
+        <label class="date-range__label">Hasta</label>
+        <input type="date" class="filter-date" [value]="grafHasta()" (change)="setGrafHasta($any($event.target).value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state gráficas -->
+  <div class="charts-empty" *ngIf="!hasStatsData()">
+    <span class="material-icons">bar_chart</span>
+    <p>Sin datos suficientes para mostrar gráficas.</p>
+  </div>
+
+  <div class="charts-grid" *ngIf="hasStatsData()">
+
+    <!-- Chart 1: Registros por período -->
+    <div class="chart-card chart-card--wide">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon">assignment</span>
+        <div>
+          <h4 class="chart-card__title">Total de registros por período</h4>
+          <p class="chart-card__sub">Cantidad de registros según la granularidad seleccionada</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="registrosPorPeriodoData()"
+          [options]="registrosPorPeriodoOpts"
+          type="bar">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Chart 2: Asistencia docente -->
+    <div class="chart-card chart-card--wide">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon" style="color:#10b981">how_to_reg</span>
+        <div>
+          <h4 class="chart-card__title">Porcentaje de asistencia docente</h4>
+          <p class="chart-card__sub">Evolución de asistencia por período</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="asistenciaPorPeriodoData()"
+          [options]="asistenciaPorPeriodoOpts"
+          type="line">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Chart 3: Uso audiovisual por edificio -->
+    <div class="chart-card">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon" style="color:#6366f1">videocam</span>
+        <div>
+          <h4 class="chart-card__title">Uso de medios audiovisuales</h4>
+          <p class="chart-card__sub">Porcentaje de uso por edificio</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="audiovisualEdificioData()"
+          [options]="audiovisualEdificioOpts"
+          type="bar">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Chart 4: Aulas con mayor ausentismo -->
+    <div class="chart-card">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon" style="color:#ef4444">warning_amber</span>
+        <div>
+          <h4 class="chart-card__title">Aulas con mayor ausentismo</h4>
+          <p class="chart-card__sub">Top 8 aulas con más docentes ausentes (mín. 3 registros)</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="ausentismoAulasData()"
+          [options]="ausentismoAulasOpts"
+          type="bar">
+        </canvas>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODAL: Detalle de registro                                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="registroDetalle()" (click)="cerrarDetalle()">
+  <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+    <header class="modal-head">
+      <div class="modal-head__info">
+        <span class="material-icons modal-head__icon">assignment</span>
+        <div>
+          <h3 class="modal-head__title">Detalle de registro</h3>
+          <span class="modal-head__sub">ID #{{ registroDetalle()?.id_registro }}</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="cerrarDetalle()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="detail-grid">
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">meeting_room</span>
+          <div>
+            <p class="detail-row__label">Aula</p>
+            <p class="detail-row__value">
+              {{ registroDetalle()?.aula_codigo ?? '—' }}
+              <span class="detail-row__sub" *ngIf="registroDetalle()?.aula_nombre">
+                · {{ registroDetalle()?.aula_nombre }}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">business</span>
+          <div>
+            <p class="detail-row__label">Edificio / Piso</p>
+            <p class="detail-row__value">
+              {{ nombreEdificio(registroDetalle()?.id_edificio) }}
+              <ng-container *ngIf="registroDetalle()?.piso"> — Piso {{ registroDetalle()?.piso }}</ng-container>
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">person</span>
+          <div>
+            <p class="detail-row__label">Docente</p>
+            <p class="detail-row__value">{{ nombreDocente(registroDetalle()!) }}</p>
+          </div>
+        </div>
+
+        <div class="detail-row" *ngIf="registroDetalle()?.curso_nombre">
+          <span class="material-icons detail-row__icon">menu_book</span>
+          <div>
+            <p class="detail-row__label">Curso / Materia</p>
+            <p class="detail-row__value">{{ registroDetalle()?.curso_nombre }}</p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">schedule</span>
+          <div>
+            <p class="detail-row__label">Turno</p>
+            <p class="detail-row__value">
+              {{ registroDetalle()?.nombre_turno ?? nombreTurno(registroDetalle()?.id_turno) }}
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">calendar_today</span>
+          <div>
+            <p class="detail-row__label">Fecha y hora</p>
+            <p class="detail-row__value">
+              {{ formatFecha(registroDetalle()?.fecha_registro ?? '') }}
+              — {{ formatHora(registroDetalle()?.fecha_registro ?? '') }}
+            </p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Indicadores booleanos -->
+      <div class="bool-indicators">
+        <div class="bool-ind"
+          [class.bool-ind--yes]="registroDetalle()?.asistencia_docente"
+          [class.bool-ind--no]="!registroDetalle()?.asistencia_docente">
+          <span class="material-icons">how_to_reg</span>
+          <div>
+            <p class="bool-ind__label">Asistencia docente</p>
+            <p class="bool-ind__value">{{ registroDetalle()?.asistencia_docente ? 'Asistió' : 'No asistió' }}</p>
+          </div>
+        </div>
+
+        <div class="bool-ind"
+          [class.bool-ind--yes]="registroDetalle()?.uso_audiovisual"
+          [class.bool-ind--no]="!registroDetalle()?.uso_audiovisual">
+          <span class="material-icons">{{ registroDetalle()?.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
+          <div>
+            <p class="bool-ind__label">Medios audiovisuales</p>
+            <p class="bool-ind__value">{{ registroDetalle()?.uso_audiovisual ? 'En uso' : 'Sin uso' }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-foot modal-foot--single">
+      <button class="btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
+    </footer>
+  </div>
+</div>

@@ -1,11 +1,372 @@
-<section class="stub">
-  <div class="stub__icon">
-    <span class="material-icons">{{ icono }}</span>
+<!-- src/app/pages/admin-panel/novedades/novedades.html -->
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- CABECERA                                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Novedades Reportadas</h2>
+    <p class="page-head__sub">
+      Novedades registradas por los auxiliares durante sus recorridos. Solo lectura.
+    </p>
   </div>
-  <h2 class="stub__title">{{ titulo }}</h2>
-  <p class="stub__desc">{{ descripcion }}</p>
-  <div class="stub__badge">
-    <span class="material-icons">construction</span>
-    <span>En construcción</span>
+  <div class="page-head__kpis">
+    <div class="kpi-chip">
+      <span class="material-icons">campaign</span>
+      <span>{{ filteredAll().length }} resultado{{ filteredAll().length !== 1 ? 's' : '' }}</span>
+    </div>
   </div>
 </section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- FILTROS                                                      -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="toolbar">
+
+  <!-- Búsqueda por aula -->
+  <div class="search-box">
+    <span class="material-icons">search</span>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Buscar por código o nombre de aula…"
+      [value]="filtroAula()"
+      (input)="setFiltroAula($any($event.target).value)">
+  </div>
+
+  <!-- Filtro edificio -->
+  <select class="filter-select" [value]="filtroEdificio()" (change)="setFiltroEdificio($any($event.target).value)">
+    <option value="">Todos los edificios</option>
+    <option *ngFor="let e of edificios()" [value]="e.id_edificio">{{ e.nombre }}</option>
+  </select>
+
+  <!-- Filtro piso (depende del edificio) -->
+  <select
+    class="filter-select"
+    [value]="filtroPiso()"
+    (change)="setFiltroPiso($any($event.target).value)"
+    [disabled]="!filtroEdificio()">
+    <option value="">Todos los pisos</option>
+    <option *ngFor="let p of pisosDisponibles()" [value]="p">Piso {{ p }}</option>
+  </select>
+
+  <!-- Rango de fechas -->
+  <div class="date-range">
+    <label class="date-range__label">Desde</label>
+    <input type="date" class="filter-date" [value]="filtroDesde()" (change)="setFiltroDesde($any($event.target).value)">
+    <label class="date-range__label">Hasta</label>
+    <input type="date" class="filter-date" [value]="filtroHasta()" (change)="setFiltroHasta($any($event.target).value)">
+  </div>
+
+  <!-- Limpiar -->
+  <button type="button" class="btn-ghost btn-sm" (click)="limpiarFiltros()">
+    <span class="material-icons">filter_alt_off</span>
+    Limpiar
+  </button>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ESTADOS: loading / error / vacío                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="state-card state-card--loading" *ngIf="loading()">
+  <div class="spinner-lg"></div>
+  <p>Cargando novedades…</p>
+</div>
+
+<div class="state-card state-card--error" *ngIf="errorMsg() && !loading()">
+  <span class="material-icons">error_outline</span>
+  <p>{{ errorMsg() }}</p>
+  <button class="btn-ghost" (click)="cargarNovedades()">
+    <span class="material-icons">refresh</span> Reintentar
+  </button>
+</div>
+
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && novedades().length === 0">
+  <span class="material-icons">campaign</span>
+  <h3>Sin novedades registradas</h3>
+  <p>Aún no hay novedades reportadas por los auxiliares.</p>
+</div>
+
+<div class="state-card state-card--empty"
+     *ngIf="!loading() && !errorMsg() && novedades().length > 0 && filteredAll().length === 0">
+  <span class="material-icons">search_off</span>
+  <h3>Sin coincidencias</h3>
+  <p>Intenta ajustar los filtros para ver resultados.</p>
+  <button class="btn-ghost" (click)="limpiarFiltros()">
+    <span class="material-icons">filter_alt_off</span> Limpiar filtros
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- TABLA DE NOVEDADES                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="data-section" *ngIf="!loading() && !errorMsg() && filteredAll().length > 0">
+
+  <!-- Desktop: tabla -->
+  <div class="table-wrap hide-on-mobile">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Aula</th>
+          <th>Edificio / Piso</th>
+          <th>Descripción</th>
+          <th>Auxiliar</th>
+          <th>Fecha</th>
+          <th>Hora</th>
+          <th class="th-actions">Detalle</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let n of pagedRows()">
+          <td>
+            <div class="aula-cell">
+              <span class="aula-cell__codigo">{{ n.aula_codigo ?? '—' }}</span>
+              <span class="aula-cell__nombre">{{ n.aula_nombre ?? '' }}</span>
+            </div>
+          </td>
+          <td>
+            <span class="tag-edif">{{ nombreEdificio(n.id_edificio) }}</span>
+            <span class="tag-piso" *ngIf="n.piso">Piso {{ n.piso }}</span>
+          </td>
+          <td class="td-desc">
+            <span class="desc-truncate" [title]="n.descripcion">{{ n.descripcion }}</span>
+          </td>
+          <td>{{ n.auxiliar_nombre ?? '—' }}</td>
+          <td>{{ formatFecha(n.fecha_novedad) }}</td>
+          <td>{{ formatHora(n.fecha_novedad) }}</td>
+          <td class="td-actions">
+            <button class="btn-icon" (click)="verDetalle(n)" title="Ver detalle">
+              <span class="material-icons">visibility</span>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile: cards -->
+  <div class="cards-list show-on-mobile">
+    <article class="novedad-card" *ngFor="let n of pagedRows()">
+      <div class="novedad-card__head">
+        <div class="novedad-card__aula-badge">
+          <span class="material-icons">meeting_room</span>
+          {{ n.aula_codigo ?? 'Aula' }}
+        </div>
+        <span class="novedad-card__fecha">{{ formatFecha(n.fecha_novedad) }} · {{ formatHora(n.fecha_novedad) }}</span>
+      </div>
+
+      <div class="novedad-card__body">
+        <p class="novedad-card__desc">{{ n.descripcion }}</p>
+        <div class="novedad-card__meta">
+          <span class="meta-item">
+            <span class="material-icons">business</span>
+            {{ nombreEdificio(n.id_edificio) }}
+            <ng-container *ngIf="n.piso"> · Piso {{ n.piso }}</ng-container>
+          </span>
+          <span class="meta-item" *ngIf="n.auxiliar_nombre">
+            <span class="material-icons">person</span>
+            {{ n.auxiliar_nombre }}
+          </span>
+        </div>
+      </div>
+
+      <div class="novedad-card__footer">
+        <button class="btn-ghost btn-sm" (click)="verDetalle(n)">
+          <span class="material-icons">visibility</span>
+          Ver detalle
+        </button>
+      </div>
+    </article>
+  </div>
+
+  <!-- Paginación -->
+  <div class="pagination" *ngIf="totalPages() > 1">
+    <button class="pag-btn" (click)="pagePrev()" [disabled]="pageIndex() === 0">
+      <span class="material-icons">chevron_left</span>
+    </button>
+    <span class="pag-info">Página {{ pageIndex() + 1 }} de {{ totalPages() }}</span>
+    <button class="pag-btn" (click)="pageNext()" [disabled]="pageIndex() >= totalPages() - 1">
+      <span class="material-icons">chevron_right</span>
+    </button>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- SECCIÓN DE ANALÍTICA / GRÁFICAS                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<section class="analytics-section" *ngIf="!loading() && !errorMsg()">
+
+  <div class="analytics-header">
+    <h3 class="analytics-title">
+      <span class="material-icons">bar_chart</span>
+      Análisis de novedades
+    </h3>
+
+    <!-- Filtros de gráficas -->
+    <div class="analytics-filters">
+      <select class="filter-select filter-select--sm" [value]="grafEdificio()" (change)="setGrafEdificio($any($event.target).value)">
+        <option value="">Todos los edificios</option>
+        <option *ngFor="let e of edificios()" [value]="e.id_edificio">{{ e.nombre }}</option>
+      </select>
+      <div class="date-range date-range--sm">
+        <label class="date-range__label">Desde</label>
+        <input type="date" class="filter-date" [value]="grafDesde()" (change)="setGrafDesde($any($event.target).value)">
+        <label class="date-range__label">Hasta</label>
+        <input type="date" class="filter-date" [value]="grafHasta()" (change)="setGrafHasta($any($event.target).value)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state de gráficas -->
+  <div class="charts-empty" *ngIf="!hasStatsData()">
+    <span class="material-icons">bar_chart</span>
+    <p>Sin datos suficientes para mostrar gráficas.</p>
+  </div>
+
+  <!-- Grid de gráficas -->
+  <div class="charts-grid" *ngIf="hasStatsData()">
+
+    <!-- Chart 1: Novedades por mes -->
+    <div class="chart-card chart-card--wide">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon">calendar_month</span>
+        <div>
+          <h4 class="chart-card__title">Novedades por mes</h4>
+          <p class="chart-card__sub">Meses con mayor cantidad de novedades reportadas</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="mesMasNovedadesData()"
+          [options]="mesMasNovedadesOpts"
+          type="bar">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Chart 2: Aulas con más novedades -->
+    <div class="chart-card">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon">meeting_room</span>
+        <div>
+          <h4 class="chart-card__title">Aulas con mayor frecuencia</h4>
+          <p class="chart-card__sub">Top 8 aulas con más novedades</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--md">
+        <canvas baseChart
+          [data]="aulasFrecuentesData()"
+          [options]="aulasFrecuentesOpts"
+          type="bar">
+        </canvas>
+      </div>
+    </div>
+
+    <!-- Chart 3: Distribución por edificio -->
+    <div class="chart-card">
+      <div class="chart-card__head">
+        <span class="material-icons chart-card__icon">business</span>
+        <div>
+          <h4 class="chart-card__title">Distribución por edificio</h4>
+          <p class="chart-card__sub">Proporción de novedades por edificio</p>
+        </div>
+      </div>
+      <div class="chart-wrap chart-wrap--donut">
+        <canvas baseChart
+          [data]="porEdificioData()"
+          [options]="porEdificioOpts"
+          type="doughnut">
+        </canvas>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- MODAL: Detalle de novedad                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="novedadDetalle()" (click)="cerrarDetalle()">
+  <div class="modal-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+    <header class="modal-head modal-head--info">
+      <div class="modal-head__info">
+        <span class="material-icons modal-head__icon">campaign</span>
+        <div>
+          <h3 class="modal-head__title">Detalle de novedad</h3>
+          <span class="modal-head__sub">ID #{{ novedadDetalle()?.id_novedad }}</span>
+        </div>
+      </div>
+      <button class="modal-close" (click)="cerrarDetalle()">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="detail-grid">
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">meeting_room</span>
+          <div>
+            <p class="detail-row__label">Aula</p>
+            <p class="detail-row__value">
+              {{ novedadDetalle()?.aula_codigo ?? '—' }}
+              <span class="detail-row__sub" *ngIf="novedadDetalle()?.aula_nombre">
+                · {{ novedadDetalle()?.aula_nombre }}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">business</span>
+          <div>
+            <p class="detail-row__label">Edificio / Piso</p>
+            <p class="detail-row__value">
+              {{ nombreEdificio(novedadDetalle()?.id_edificio) }}
+              <ng-container *ngIf="novedadDetalle()?.piso"> — Piso {{ novedadDetalle()?.piso }}</ng-container>
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">person</span>
+          <div>
+            <p class="detail-row__label">Auxiliar que reportó</p>
+            <p class="detail-row__value">{{ novedadDetalle()?.auxiliar_nombre ?? '—' }}</p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">schedule</span>
+          <div>
+            <p class="detail-row__label">Fecha y hora</p>
+            <p class="detail-row__value">
+              {{ formatFecha(novedadDetalle()?.fecha_novedad ?? '') }}
+              — {{ formatHora(novedadDetalle()?.fecha_novedad ?? '') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-desc">
+          <span class="material-icons detail-row__icon">chat_bubble_outline</span>
+          <div>
+            <p class="detail-row__label">Descripción</p>
+            <p class="detail-row__value detail-row__value--full">{{ novedadDetalle()?.descripcion }}</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="info-box">
+        <span class="material-icons info-box__icon">info</span>
+        <span>Las novedades son informativas y no requieren seguimiento de estado.</span>
+      </div>
+    </div>
+
+    <footer class="modal-foot modal-foot--single">
+      <button class="btn-ghost" (click)="cerrarDetalle()">Cerrar</button>
+    </footer>
+  </div>
+</div>
