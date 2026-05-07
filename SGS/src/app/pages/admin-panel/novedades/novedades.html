@@ -34,13 +34,13 @@
       (input)="setFiltroAula($any($event.target).value)">
   </div>
 
-  <!-- Filtro edificio -->
+  <!-- Filtro edificio: catálogo derivado de los datos cargados -->
   <select class="filter-select" [value]="filtroEdificio()" (change)="setFiltroEdificio($any($event.target).value)">
     <option value="">Todos los edificios</option>
     <option *ngFor="let e of edificios()" [value]="e.id_edificio">{{ e.nombre }}</option>
   </select>
 
-  <!-- Filtro piso (depende del edificio) -->
+  <!-- Filtro piso: derivado de los registros del edificio seleccionado -->
   <select
     class="filter-select"
     [value]="filtroPiso()"
@@ -126,6 +126,7 @@
             </div>
           </td>
           <td>
+            <!-- nombreEdificio() usa el catálogo derivado de los datos -->
             <span class="tag-edif">{{ nombreEdificio(n.id_edificio) }}</span>
             <span class="tag-piso" *ngIf="n.piso">Piso {{ n.piso }}</span>
           </td>
@@ -133,6 +134,7 @@
             <span class="desc-truncate" [title]="n.descripcion">{{ n.descripcion }}</span>
           </td>
           <td>{{ n.auxiliar_nombre ?? '—' }}</td>
+          <!-- fecha_novedad es un datetime ISO → formatFecha / formatHora lo parsean con new Date() -->
           <td>{{ formatFecha(n.fecha_novedad) }}</td>
           <td>{{ formatHora(n.fecha_novedad) }}</td>
           <td class="td-actions">
@@ -153,7 +155,9 @@
           <span class="material-icons">meeting_room</span>
           {{ n.aula_codigo ?? 'Aula' }}
         </div>
-        <span class="novedad-card__fecha">{{ formatFecha(n.fecha_novedad) }} · {{ formatHora(n.fecha_novedad) }}</span>
+        <span class="novedad-card__fecha">
+          {{ formatFecha(n.fecha_novedad) }} · {{ formatHora(n.fecha_novedad) }}
+        </span>
       </div>
 
       <div class="novedad-card__body">
@@ -338,14 +342,20 @@
           </div>
         </div>
 
+        <!-- fecha_novedad es datetime: se parsea con new Date() directamente -->
         <div class="detail-row">
-          <span class="material-icons detail-row__icon">schedule</span>
+          <span class="material-icons detail-row__icon">calendar_today</span>
           <div>
-            <p class="detail-row__label">Fecha y hora</p>
-            <p class="detail-row__value">
-              {{ formatFecha(novedadDetalle()?.fecha_novedad ?? '') }}
-              — {{ formatHora(novedadDetalle()?.fecha_novedad ?? '') }}
-            </p>
+            <p class="detail-row__label">Fecha</p>
+            <p class="detail-row__value">{{ formatFecha(novedadDetalle()?.fecha_novedad ?? '') }}</p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">access_time</span>
+          <div>
+            <p class="detail-row__label">Hora</p>
+            <p class="detail-row__value">{{ formatHora(novedadDetalle()?.fecha_novedad ?? '') }}</p>
           </div>
         </div>
 
