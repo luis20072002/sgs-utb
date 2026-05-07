@@ -1,7 +1,7 @@
 // src/app/pages/admin-panel/novedades/novedades.ts
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ChartConfiguration, ChartData } from 'chart.js';
 import { BaseChartDirective } from 'ng2-charts';
@@ -9,34 +9,27 @@ import { BaseChartDirective } from 'ng2-charts';
 import { environment } from '../../../../environments/environment';
 
 /**
- * Modelo de novedad devuelto por el backend.
- * GET /novedades/ → NovedadAdmin[]
+ * Modelo enriquecido devuelto por GET /novedades/detalle
+ * Refleja el JOIN completo del backend (análogo a RegistroDetalleResponse).
  */
 export interface NovedadAdmin {
-  id_novedad:       number;
-  id_registro:      number;
-  descripcion:      string;
-  fecha_novedad:    string;   // ISO datetime
-  // Campos enriquecidos que el backend puede devolver en el listado
-  aula_codigo?:     string;
-  aula_nombre?:     string;
-  piso?:            number;
-  id_edificio?:     number;
-  nombre_edificio?: string;
-  auxiliar_nombre?: string;
+  id_novedad:              number;
+  id_registro:             number;
+  descripcion:             string;
+  fecha_novedad:           string;   // ISO datetime "YYYY-MM-DDTHH:MM:SS"
+  // Aula (via registro)
+  id_aula:                 number;
+  aula_codigo:             string;
+  aula_nombre:             string | null;
+  piso:                    number;
+  // Edificio (via aula)
+  id_edificio:             number;
+  nombre_edificio:         string;
+  // Auxiliar que reportó
+  id_usuario:              number;
+  auxiliar_nombre:         string;
 }
 
-/**
- * /admin/novedades
- *
- * RF: visualizar todas las novedades reportadas por auxiliares.
- * Muestra: aula, descripción, fecha/hora, auxiliar que reportó.
- * Filtros: edificio, piso, aula (texto) y rango de fechas.
- * Gráficas: meses con más novedades, aulas frecuentes, distribución
- * por edificio/piso. Filtrables por rango de fechas y edificio.
- *
- * Las novedades son informativas — no tienen seguimiento de estado.
- */
 @Component({
   selector: 'app-admin-novedades',
   standalone: true,
@@ -49,10 +42,11 @@ export class AdminNovedadesComponent implements OnInit {
   private base = environment.apiUrl;
 
   // ── Estado principal ───────────────────────────────────────────
-  novedades   = signal<NovedadAdmin[]>([]);
-  edificios   = signal<{ id_edificio: number; nombre: string; cantidad_pisos: number }[]>([]);
-  loading     = signal(true);
-  errorMsg    = signal('');
+  novedades = signal<NovedadAdmin[]>([]);
+  // Catálogos derivados de los propios datos (sin llamada extra)
+  edificios = signal<{ id_edificio: number; nombre: string }[]>([]);
+  loading   = signal(true);
+  errorMsg  = signal('');
 
   // ── Filtros ────────────────────────────────────────────────────
   filtroEdificio = signal<string>('');
@@ -65,7 +59,7 @@ export class AdminNovedadesComponent implements OnInit {
   pageSize  = 10;
   pageIndex = signal(0);
 
-  // ── Vista detalle de novedad ───────────────────────────────────
+  // ── Vista detalle ──────────────────────────────────────────────
   novedadDetalle = signal<NovedadAdmin | null>(null);
 
   // ── Filtrado reactivo ──────────────────────────────────────────
@@ -73,14 +67,14 @@ export class AdminNovedadesComponent implements OnInit {
     const edif  = this.filtroEdificio().trim();
     const piso  = this.filtroPiso().trim();
     const aula  = this.filtroAula().trim().toLowerCase();
-    const desde = this.filtroDesde() ? new Date(this.filtroDesde()) : null;
+    const desde = this.filtroDesde() ? new Date(this.filtroDesde() + 'T00:00:00') : null;
     const hasta = this.filtroHasta() ? new Date(this.filtroHasta() + 'T23:59:59') : null;
 
     return this.novedades().filter(n => {
-      if (edif && String(n.id_edificio ?? '') !== edif) return false;
-      if (piso && String(n.piso ?? '') !== piso) return false;
+      if (edif && String(n.id_edificio) !== edif) return false;
+      if (piso && String(n.piso)        !== piso)  return false;
       if (aula) {
-        const haystack = `${n.aula_codigo ?? ''} ${n.aula_nombre ?? ''}`.toLowerCase();
+        const haystack = `${n.aula_codigo} ${n.aula_nombre ?? ''}`.toLowerCase();
         if (!haystack.includes(aula)) return false;
       }
       if (desde || hasta) {
@@ -101,24 +95,21 @@ export class AdminNovedadesComponent implements OnInit {
     return this.filteredAll().slice(start, start + this.pageSize);
   });
 
-  // ── Pisos disponibles según edificio seleccionado ──────────────
+  // Pisos derivados de los registros cargados (igual que en registros.ts)
   readonly pisosDisponibles = computed(() => {
-    const edifId = Number(this.filtroEdificio());
-    if (!edifId) return [];
-    const edif = this.edificios().find(e => e.id_edificio === edifId);
-    if (!edif) return [];
-    return Array.from({ length: edif.cantidad_pisos }, (_, i) => i + 1);
+    const edifId = this.filtroEdificio().trim();
+    const fuente = edifId
+      ? this.novedades().filter(n => String(n.id_edificio) === edifId)
+      : this.novedades();
+    return [...new Set(fuente.map(n => n.piso))].filter(Boolean).sort((a, b) => a - b);
   });
 
   // ── Gráficas ───────────────────────────────────────────────────
-  // Rango de fechas independiente para gráficas
-  grafDesde = signal<string>(this.defaultDesde());
-  grafHasta = signal<string>(this.defaultHasta());
+  grafDesde    = signal<string>(this.defaultDesde());
+  grafHasta    = signal<string>(this.defaultHasta());
   grafEdificio = signal<string>('');
-  loadingStats = signal(false);
 
-  // Chart 1: Novedades por mes
-  mesMasNovedadesData  = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
+  mesMasNovedadesData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
   mesMasNovedadesOpts: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -126,8 +117,7 @@ export class AdminNovedadesComponent implements OnInit {
     plugins: { legend: { display: false } },
   };
 
-  // Chart 2: Aulas con más novedades
-  aulasFrecuentesData  = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
+  aulasFrecuentesData = signal<ChartData<'bar'>>({ labels: [], datasets: [] });
   aulasFrecuentesOpts: ChartConfiguration<'bar'>['options'] = {
     indexAxis: 'y',
     responsive: true,
@@ -136,8 +126,7 @@ export class AdminNovedadesComponent implements OnInit {
     plugins: { legend: { display: false } },
   };
 
-  // Chart 3: Distribución por edificio
-  porEdificioData  = signal<ChartData<'doughnut'>>({ labels: [], datasets: [] });
+  porEdificioData = signal<ChartData<'doughnut'>>({ labels: [], datasets: [] });
   porEdificioOpts: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -146,25 +135,32 @@ export class AdminNovedadesComponent implements OnInit {
 
   // ══════════════════════════════════════════════════════════════
   ngOnInit(): void {
-    this.cargarEdificios();
     this.cargarNovedades();
   }
 
-  // ── Carga de datos ─────────────────────────────────────────────
-  cargarEdificios(): void {
-    this.http.get<any[]>(`${this.base}/edificios/`).subscribe({
-      next: (data) => this.edificios.set(data ?? []),
-      error: () => {},
-    });
-  }
-
+  /**
+   * Carga desde GET /novedades/detalle — JOIN completo desde el backend.
+   * Los catálogos de edificios para los selects se derivan de los datos
+   * recibidos, sin llamadas extra (igual que registros.ts).
+   */
   cargarNovedades(): void {
     this.loading.set(true);
     this.errorMsg.set('');
 
-    this.http.get<NovedadAdmin[]>(`${this.base}/novedades/`).subscribe({
+    this.http.get<NovedadAdmin[]>(`${this.base}/novedades/detalle`).subscribe({
       next: (data) => {
-        this.novedades.set(Array.isArray(data) ? data : []);
+        const rows = Array.isArray(data) ? data : [];
+        this.novedades.set(rows);
+
+        // Construir catálogo de edificios único para los selects
+        const edifMap = new Map<number, { id_edificio: number; nombre: string }>();
+        rows.forEach(n => {
+          edifMap.set(n.id_edificio, { id_edificio: n.id_edificio, nombre: n.nombre_edificio });
+        });
+        this.edificios.set(
+          Array.from(edifMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre))
+        );
+
         this.loading.set(false);
         this.recomputeCharts();
       },
@@ -178,12 +174,11 @@ export class AdminNovedadesComponent implements OnInit {
   // ── Filtros ────────────────────────────────────────────────────
   setFiltroEdificio(v: string): void {
     this.filtroEdificio.set(v);
-    this.filtroPiso.set('');   // reset piso al cambiar edificio
+    this.filtroPiso.set('');
     this.pageIndex.set(0);
   }
-
-  setFiltroPiso(v: string): void { this.filtroPiso.set(v); this.pageIndex.set(0); }
-  setFiltroAula(v: string): void { this.filtroAula.set(v); this.pageIndex.set(0); }
+  setFiltroPiso(v: string): void  { this.filtroPiso.set(v);  this.pageIndex.set(0); }
+  setFiltroAula(v: string): void  { this.filtroAula.set(v);  this.pageIndex.set(0); }
   setFiltroDesde(v: string): void { this.filtroDesde.set(v); this.pageIndex.set(0); }
   setFiltroHasta(v: string): void { this.filtroHasta.set(v); this.pageIndex.set(0); }
 
@@ -200,21 +195,23 @@ export class AdminNovedadesComponent implements OnInit {
   pagePrev(): void { if (this.pageIndex() > 0) this.pageIndex.update(i => i - 1); }
   pageNext(): void { if (this.pageIndex() < this.totalPages() - 1) this.pageIndex.update(i => i + 1); }
 
-  // ── Detalle de novedad ─────────────────────────────────────────
+  // ── Detalle ────────────────────────────────────────────────────
   verDetalle(n: NovedadAdmin): void { this.novedadDetalle.set(n); }
   cerrarDetalle(): void { this.novedadDetalle.set(null); }
 
   // ── Formato ────────────────────────────────────────────────────
   formatFecha(iso: string): string {
     if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    return new Date(iso).toLocaleDateString('es-CO', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
   }
 
   formatHora(iso: string): string {
     if (!iso) return '—';
-    const d = new Date(iso);
-    return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString('es-CO', {
+      hour: '2-digit', minute: '2-digit'
+    });
   }
 
   nombreEdificio(id: number | undefined): string {
@@ -223,20 +220,20 @@ export class AdminNovedadesComponent implements OnInit {
   }
 
   // ── Gráficas ───────────────────────────────────────────────────
-  setGrafDesde(v: string): void { this.grafDesde.set(v); this.recomputeCharts(); }
-  setGrafHasta(v: string): void { this.grafHasta.set(v); this.recomputeCharts(); }
+  setGrafDesde(v: string): void    { this.grafDesde.set(v);    this.recomputeCharts(); }
+  setGrafHasta(v: string): void    { this.grafHasta.set(v);    this.recomputeCharts(); }
   setGrafEdificio(v: string): void { this.grafEdificio.set(v); this.recomputeCharts(); }
 
   private recomputeCharts(): void {
-    const desde     = this.grafDesde()    ? new Date(this.grafDesde())                 : null;
-    const hasta     = this.grafHasta()    ? new Date(this.grafHasta() + 'T23:59:59')  : null;
+    const desde      = this.grafDesde()    ? new Date(this.grafDesde() + 'T00:00:00')    : null;
+    const hasta      = this.grafHasta()    ? new Date(this.grafHasta() + 'T23:59:59')    : null;
     const edifFiltro = this.grafEdificio();
 
-    let filtered = this.novedades().filter(n => {
+    const filtered = this.novedades().filter(n => {
       const fn = new Date(n.fecha_novedad);
       if (desde && fn < desde) return false;
       if (hasta && fn > hasta) return false;
-      if (edifFiltro && String(n.id_edificio ?? '') !== edifFiltro) return false;
+      if (edifFiltro && String(n.id_edificio) !== edifFiltro) return false;
       return true;
     });
 
@@ -255,11 +252,7 @@ export class AdminNovedadesComponent implements OnInit {
     const sorted = Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
     this.mesMasNovedadesData.set({
       labels: sorted.map(([k]) => k),
-      datasets: [{
-        data: sorted.map(([, v]) => v),
-        backgroundColor: '#3b5cff',
-        borderRadius: 6,
-      }],
+      datasets: [{ data: sorted.map(([, v]) => v), backgroundColor: '#3b5cff', borderRadius: 6 }],
     });
   }
 
@@ -269,10 +262,7 @@ export class AdminNovedadesComponent implements OnInit {
       const key = n.aula_codigo ?? `Reg#${n.id_registro}`;
       map.set(key, (map.get(key) ?? 0) + 1);
     });
-    const top = Array.from(map.entries())
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 8);
-
+    const top = Array.from(map.entries()).sort(([, a], [, b]) => b - a).slice(0, 8);
     this.aulasFrecuentesData.set({
       labels: top.map(([k]) => k),
       datasets: [{
@@ -293,8 +283,7 @@ export class AdminNovedadesComponent implements OnInit {
       map.set(key, (map.get(key) ?? 0) + 1);
     });
     const entries = Array.from(map.entries());
-
-    const COLORS = ['#3b5cff','#f59e0b','#10b981','#ef4444','#6366f1','#ec4899','#06b6d4'];
+    const COLORS  = ['#3b5cff','#f59e0b','#10b981','#ef4444','#6366f1','#ec4899','#06b6d4'];
     this.porEdificioData.set({
       labels: entries.map(([k]) => k),
       datasets: [{
@@ -306,7 +295,7 @@ export class AdminNovedadesComponent implements OnInit {
     });
   }
 
-  // ── Helpers de rango por defecto ───────────────────────────────
+  // ── Helpers de rango ───────────────────────────────────────────
   private defaultDesde(): string {
     const d = new Date();
     d.setMonth(d.getMonth() - 3);
@@ -316,6 +305,5 @@ export class AdminNovedadesComponent implements OnInit {
     return new Date().toISOString().slice(0, 10);
   }
 
-  /** ¿Hay datos en el rango de gráficas? */
   hasStatsData(): boolean { return this.novedades().length > 0; }
 }
