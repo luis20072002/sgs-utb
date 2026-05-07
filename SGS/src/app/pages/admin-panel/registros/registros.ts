@@ -9,31 +9,36 @@ import { BaseChartDirective } from 'ng2-charts';
 import { environment } from '../../../../environments/environment';
 
 /**
- * Modelo de registro devuelto por GET /registros/
- * Los campos con ? son enriquecimientos que el backend puede incluir.
+ * Modelo enriquecido devuelto por GET /registros/detalle
+ * Refleja exactamente el RegistroDetalleResponse del backend (JOIN completo).
  */
 export interface RegistroAdmin {
   id_registro:              number;
-  id_aula:                  number;
-  id_docente:               number;
-  id_planilla?:             number;
-  id_turno?:                number;
   asistencia_docente:       boolean;
-  uso_audiovisual:          boolean;
-  fecha_registro:           string;   // ISO datetime
-  hora_inicio?:             string;
-  hora_fin?:                string;
-  // Campos enriquecidos
-  aula_codigo?:             string;
-  aula_nombre?:             string;
-  piso?:                    number;
-  id_edificio?:             number;
-  nombre_edificio?:         string;
-  docente_nombre?:          string;
-  docente_apellido?:        string;
-  nombre_turno?:            string;
-  curso_nombre?:            string;
-  auxiliar_nombre?:         string;
+  uso_medios_audiovisuales: boolean;
+  fecha_registro:           string;   // date  "YYYY-MM-DD"
+  hora_registro:            string;   // time  "HH:MM:SS"
+  // Turno
+  id_turno:     number;
+  nombre_turno: string;
+  // Aula
+  id_aula:    number;
+  aula_codigo: string;
+  aula_nombre: string | null;
+  piso:        number;
+  // Edificio (via aula)
+  id_edificio:     number;
+  nombre_edificio: string;
+  // Docente
+  id_docente:       number;
+  docente_nombre:   string;
+  docente_apellido: string;
+  // Curso
+  id_curso:    number;
+  curso_nombre: string;
+  // Auxiliar
+  id_usuario:      number;
+  auxiliar_nombre: string;
 }
 
 /**
@@ -65,7 +70,7 @@ export class AdminRegistrosComponent implements OnInit {
 
   // ── Estado principal ───────────────────────────────────────────
   registros  = signal<RegistroAdmin[]>([]);
-  edificios  = signal<{ id_edificio: number; nombre: string; cantidad_pisos: number }[]>([]);
+  edificios  = signal<{ id_edificio: number; nombre: string }[]>([]);
   turnos     = signal<{ id_turno: number; nombre_turno: string }[]>([]);
   loading    = signal(true);
   errorMsg   = signal('');
@@ -93,23 +98,23 @@ export class AdminRegistrosComponent implements OnInit {
     const aula    = this.filtroAula().trim().toLowerCase();
     const docente = this.filtroDocente().trim().toLowerCase();
     const turno   = this.filtroTurno().trim();
-    const desde   = this.filtroDesde() ? new Date(this.filtroDesde()) : null;
-    const hasta   = this.filtroHasta() ? new Date(this.filtroHasta() + 'T23:59:59') : null;
+    const desde   = this.filtroDesde() ? new Date(this.filtroDesde()   + 'T00:00:00') : null;
+    const hasta   = this.filtroHasta() ? new Date(this.filtroHasta()   + 'T23:59:59') : null;
 
     return this.registros().filter(r => {
-      if (edif  && String(r.id_edificio ?? '') !== edif)   return false;
-      if (piso  && String(r.piso ?? '') !== piso)           return false;
-      if (turno && String(r.id_turno ?? '') !== turno)      return false;
+      if (edif  && String(r.id_edificio) !== edif) return false;
+      if (piso  && String(r.piso)        !== piso)  return false;
+      if (turno && String(r.id_turno)    !== turno) return false;
       if (aula) {
-        const h = `${r.aula_codigo ?? ''} ${r.aula_nombre ?? ''}`.toLowerCase();
+        const h = `${r.aula_codigo} ${r.aula_nombre ?? ''}`.toLowerCase();
         if (!h.includes(aula)) return false;
       }
       if (docente) {
-        const h = `${r.docente_nombre ?? ''} ${r.docente_apellido ?? ''}`.toLowerCase();
+        const h = `${r.docente_nombre} ${r.docente_apellido}`.toLowerCase();
         if (!h.includes(docente)) return false;
       }
       if (desde || hasta) {
-        const fr = new Date(r.fecha_registro);
+        const fr = new Date(r.fecha_registro + 'T00:00:00');
         if (desde && fr < desde) return false;
         if (hasta && fr > hasta) return false;
       }
@@ -127,11 +132,14 @@ export class AdminRegistrosComponent implements OnInit {
   });
 
   readonly pisosDisponibles = computed(() => {
-    const edifId = Number(this.filtroEdificio());
-    if (!edifId) return [];
-    const edif = this.edificios().find(e => e.id_edificio === edifId);
-    if (!edif) return [];
-    return Array.from({ length: edif.cantidad_pisos }, (_, i) => i + 1);
+    // Los pisos disponibles se derivan de los registros ya cargados,
+    // filtrados por el edificio seleccionado si corresponde.
+    const edifId = this.filtroEdificio().trim();
+    const fuente = edifId
+      ? this.registros().filter(r => String(r.id_edificio) === edifId)
+      : this.registros();
+    const pisos = [...new Set(fuente.map(r => r.piso))].filter(Boolean).sort((a, b) => a - b);
+    return pisos;
   });
 
   // ── KPIs rápidos del filtro activo ─────────────────────────────
@@ -144,7 +152,7 @@ export class AdminRegistrosComponent implements OnInit {
   readonly kpiAudiovisual = computed(() => {
     const all = this.filteredAll();
     if (!all.length) return 0;
-    return Math.round((all.filter(r => r.uso_audiovisual).length / all.length) * 100);
+    return Math.round((all.filter(r => r.uso_medios_audiovisuales).length / all.length) * 100);
   });
 
   // ── Gráficas ───────────────────────────────────────────────────
@@ -189,27 +197,33 @@ export class AdminRegistrosComponent implements OnInit {
 
   // ══════════════════════════════════════════════════════════════
   ngOnInit(): void {
-    this.cargarAuxiliares();
     this.cargarRegistros();
   }
 
-  private cargarAuxiliares(): void {
-    this.http.get<any[]>(`${this.base}/edificios/`).subscribe({
-      next: d => this.edificios.set(d ?? []),
-      error: () => {},
-    });
-    this.http.get<any[]>(`${this.base}/turnos/`).subscribe({
-      next: d => this.turnos.set(d ?? []),
-      error: () => {},
-    });
-  }
-
+  /**
+   * Carga desde GET /registros/detalle — el backend devuelve el JOIN completo.
+   * Los catálogos de edificios y turnos para los selects se derivan
+   * de los propios datos recibidos (sin llamadas extra).
+   */
   cargarRegistros(): void {
     this.loading.set(true);
     this.errorMsg.set('');
-    this.http.get<RegistroAdmin[]>(`${this.base}/registros/`).subscribe({
+
+    this.http.get<RegistroAdmin[]>(`${this.base}/registros/detalle`).subscribe({
       next: (data) => {
-        this.registros.set(Array.isArray(data) ? data : []);
+        const rows = Array.isArray(data) ? data : [];
+        this.registros.set(rows);
+
+        // Construir catálogos únicos para los selects de filtro
+        const edifMap = new Map<number, { id_edificio: number; nombre: string }>();
+        const turMap  = new Map<number, { id_turno: number; nombre_turno: string }>();
+        rows.forEach(r => {
+          edifMap.set(r.id_edificio, { id_edificio: r.id_edificio, nombre: r.nombre_edificio });
+          turMap.set(r.id_turno,     { id_turno: r.id_turno,       nombre_turno: r.nombre_turno });
+        });
+        this.edificios.set(Array.from(edifMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre)));
+        this.turnos.set(Array.from(turMap.values()).sort((a, b) => a.id_turno - b.id_turno));
+
         this.loading.set(false);
         this.recomputeCharts();
       },
@@ -255,16 +269,18 @@ export class AdminRegistrosComponent implements OnInit {
   // ── Formato ────────────────────────────────────────────────────
   formatFecha(iso: string): string {
     if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+    // fecha_registro llega como "YYYY-MM-DD"
+    return new Date(iso + 'T00:00:00').toLocaleDateString('es-CO', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
   }
-  formatHora(iso: string): string {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+  formatHora(hora: string): string {
+    if (!hora) return '—';
+    // hora_registro llega como "HH:MM:SS"
+    return hora.slice(0, 5);   // "HH:MM"
   }
   nombreDocente(r: RegistroAdmin): string {
-    const n = r.docente_nombre ?? '';
-    const a = r.docente_apellido ?? '';
-    return (n + ' ' + a).trim() || `#${r.id_docente}`;
+    return `${r.docente_nombre} ${r.docente_apellido}`.trim() || `Docente #${r.id_docente}`;
   }
   nombreEdificio(id: number | undefined): string {
     if (!id) return '—';
@@ -283,17 +299,17 @@ export class AdminRegistrosComponent implements OnInit {
   setGrafTurno(v: string): void    { this.grafTurno.set(v);    this.recomputeCharts(); }
 
   private recomputeCharts(): void {
-    const desde  = this.grafDesde()   ? new Date(this.grafDesde())                : null;
-    const hasta  = this.grafHasta()   ? new Date(this.grafHasta() + 'T23:59:59') : null;
+    const desde  = this.grafDesde()   ? new Date(this.grafDesde()   + 'T00:00:00') : null;
+    const hasta  = this.grafHasta()   ? new Date(this.grafHasta()   + 'T23:59:59') : null;
     const edif   = this.grafEdificio();
     const turno  = this.grafTurno();
 
     const base = this.registros().filter(r => {
-      const fr = new Date(r.fecha_registro);
+      const fr = new Date(r.fecha_registro + 'T00:00:00');
       if (desde && fr < desde) return false;
       if (hasta && fr > hasta) return false;
-      if (edif  && String(r.id_edificio ?? '') !== edif)  return false;
-      if (turno && String(r.id_turno ?? '') !== turno)     return false;
+      if (edif  && String(r.id_edificio) !== edif) return false;
+      if (turno && String(r.id_turno)    !== turno) return false;
       return true;
     });
 
@@ -303,10 +319,11 @@ export class AdminRegistrosComponent implements OnInit {
     this.computeAusentismoAulas(base);
   }
 
-  private periodoKey(iso: string): string {
-    const d = new Date(iso);
+  private periodoKey(fechaStr: string): string {
+    // fecha_registro viene como "YYYY-MM-DD" desde el backend
+    const d = new Date(fechaStr + 'T00:00:00');
     const g = this.granularidad();
-    if (g === 'dia')  return d.toISOString().slice(0, 10);
+    if (g === 'dia')  return fechaStr.slice(0, 10);
     if (g === 'anio') return String(d.getFullYear());
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
@@ -350,10 +367,10 @@ export class AdminRegistrosComponent implements OnInit {
   private computeAudiovisualEdificio(regs: RegistroAdmin[]): void {
     const map = new Map<string, { total: number; uso: number }>();
     regs.forEach(r => {
-      const k = r.nombre_edificio ?? this.nombreEdificio(r.id_edificio);
+      const k = r.nombre_edificio;
       const cur = map.get(k) ?? { total: 0, uso: 0 };
       cur.total++;
-      if (r.uso_audiovisual) cur.uso++;
+      if (r.uso_medios_audiovisuales) cur.uso++;
       map.set(k, cur);
     });
     const entries = Array.from(map.entries()).filter(([, v]) => v.total > 0);
@@ -369,7 +386,7 @@ export class AdminRegistrosComponent implements OnInit {
   private computeAusentismoAulas(regs: RegistroAdmin[]): void {
     const map = new Map<string, { total: number; ausente: number }>();
     regs.forEach(r => {
-      const k = r.aula_codigo ?? `Aula #${r.id_aula}`;
+      const k = r.aula_codigo;
       const cur = map.get(k) ?? { total: 0, ausente: 0 };
       cur.total++;
       if (!r.asistencia_docente) cur.ausente++;
