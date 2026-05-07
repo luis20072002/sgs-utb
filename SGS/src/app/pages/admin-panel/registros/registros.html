@@ -137,6 +137,7 @@
           <th>Asistencia</th>
           <th>Audiovisual</th>
           <th>Fecha</th>
+          <th>Hora</th>
           <th class="th-actions">Detalle</th>
         </tr>
       </thead>
@@ -155,6 +156,8 @@
           <td>{{ nombreDocente(r) }}</td>
           <td class="td-curso">{{ r.curso_nombre ?? '—' }}</td>
           <td>{{ r.nombre_turno ?? nombreTurno(r.id_turno) }}</td>
+
+          <!-- FIX: propiedad correcta es asistencia_docente ✓ (ya estaba bien) -->
           <td>
             <span class="badge-bool"
               [class.badge-bool--yes]="r.asistencia_docente"
@@ -163,18 +166,25 @@
               {{ r.asistencia_docente ? 'Sí' : 'No' }}
             </span>
           </td>
+
+          <!-- FIX: era r.uso_audiovisual → correcto: r.uso_medios_audiovisuales -->
           <td>
             <span class="badge-bool"
-              [class.badge-bool--yes]="r.uso_audiovisual"
-              [class.badge-bool--no]="!r.uso_audiovisual">
-              <span class="material-icons">{{ r.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
-              {{ r.uso_audiovisual ? 'Sí' : 'No' }}
+              [class.badge-bool--yes]="r.uso_medios_audiovisuales"
+              [class.badge-bool--no]="!r.uso_medios_audiovisuales">
+              <span class="material-icons">{{ r.uso_medios_audiovisuales ? 'videocam' : 'videocam_off' }}</span>
+              {{ r.uso_medios_audiovisuales ? 'Sí' : 'No' }}
             </span>
           </td>
+
+          <!-- FIX: fecha separada de hora; formatHora recibe r.hora_registro -->
           <td>
             <span class="fecha-cell">{{ formatFecha(r.fecha_registro) }}</span>
-            <span class="hora-cell">{{ formatHora(r.fecha_registro) }}</span>
           </td>
+          <td>
+            <span class="hora-cell">{{ formatHora(r.hora_registro) }}</span>
+          </td>
+
           <td class="td-actions">
             <button class="btn-icon" (click)="verDetalle(r)" title="Ver detalle">
               <span class="material-icons">visibility</span>
@@ -193,7 +203,10 @@
           <span class="material-icons">meeting_room</span>
           {{ r.aula_codigo ?? 'Aula' }}
         </div>
-        <span class="registro-card__fecha">{{ formatFecha(r.fecha_registro) }}</span>
+        <!-- FIX: fecha y hora separadas -->
+        <span class="registro-card__fecha">
+          {{ formatFecha(r.fecha_registro) }} · {{ formatHora(r.hora_registro) }}
+        </span>
       </div>
 
       <div class="registro-card__body">
@@ -220,11 +233,13 @@
             <span class="material-icons">how_to_reg</span>
             Docente {{ r.asistencia_docente ? 'asistió' : 'no asistió' }}
           </span>
+
+          <!-- FIX: era r.uso_audiovisual → correcto: r.uso_medios_audiovisuales -->
           <span class="badge-bool"
-            [class.badge-bool--yes]="r.uso_audiovisual"
-            [class.badge-bool--no]="!r.uso_audiovisual">
-            <span class="material-icons">{{ r.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
-            AV {{ r.uso_audiovisual ? 'en uso' : 'sin uso' }}
+            [class.badge-bool--yes]="r.uso_medios_audiovisuales"
+            [class.badge-bool--no]="!r.uso_medios_audiovisuales">
+            <span class="material-icons">{{ r.uso_medios_audiovisuales ? 'videocam' : 'videocam_off' }}</span>
+            AV {{ r.uso_medios_audiovisuales ? 'en uso' : 'sin uso' }}
           </span>
         </div>
       </div>
@@ -444,14 +459,33 @@
           </div>
         </div>
 
+        <!-- FIX: fecha y hora separadas con sus campos correctos -->
         <div class="detail-row">
           <span class="material-icons detail-row__icon">calendar_today</span>
           <div>
-            <p class="detail-row__label">Fecha y hora</p>
+            <p class="detail-row__label">Fecha</p>
             <p class="detail-row__value">
               {{ formatFecha(registroDetalle()?.fecha_registro ?? '') }}
-              — {{ formatHora(registroDetalle()?.fecha_registro ?? '') }}
             </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">access_time</span>
+          <div>
+            <p class="detail-row__label">Hora</p>
+            <!-- FIX: era formatHora(fecha_registro) → correcto: formatHora(hora_registro) -->
+            <p class="detail-row__value">
+              {{ formatHora(registroDetalle()?.hora_registro ?? '') }}
+            </p>
+          </div>
+        </div>
+
+        <div class="detail-row">
+          <span class="material-icons detail-row__icon">support_agent</span>
+          <div>
+            <p class="detail-row__label">Auxiliar</p>
+            <p class="detail-row__value">{{ registroDetalle()?.auxiliar_nombre ?? '—' }}</p>
           </div>
         </div>
 
@@ -469,13 +503,14 @@
           </div>
         </div>
 
+        <!-- FIX: era uso_audiovisual → correcto: uso_medios_audiovisuales -->
         <div class="bool-ind"
-          [class.bool-ind--yes]="registroDetalle()?.uso_audiovisual"
-          [class.bool-ind--no]="!registroDetalle()?.uso_audiovisual">
-          <span class="material-icons">{{ registroDetalle()?.uso_audiovisual ? 'videocam' : 'videocam_off' }}</span>
+          [class.bool-ind--yes]="registroDetalle()?.uso_medios_audiovisuales"
+          [class.bool-ind--no]="!registroDetalle()?.uso_medios_audiovisuales">
+          <span class="material-icons">{{ registroDetalle()?.uso_medios_audiovisuales ? 'videocam' : 'videocam_off' }}</span>
           <div>
             <p class="bool-ind__label">Medios audiovisuales</p>
-            <p class="bool-ind__value">{{ registroDetalle()?.uso_audiovisual ? 'En uso' : 'Sin uso' }}</p>
+            <p class="bool-ind__value">{{ registroDetalle()?.uso_medios_audiovisuales ? 'En uso' : 'Sin uso' }}</p>
           </div>
         </div>
       </div>
