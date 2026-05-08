@@ -1,0 +1,49 @@
+[debug] [2026-05-07T23:30:32.802Z] ----------------------------------------------------------------------
+[debug] [2026-05-07T23:30:32.805Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Deiner\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2026-05-07T23:30:32.805Z] CLI Version:   15.17.0
+[debug] [2026-05-07T23:30:32.806Z] Platform:      win32
+[debug] [2026-05-07T23:30:32.806Z] Node Version:  v22.14.0
+[debug] [2026-05-07T23:30:32.806Z] Time:          Thu May 07 2026 18:30:32 GMT-0500 (hora estándar de Colombia)
+[debug] [2026-05-07T23:30:32.806Z] ----------------------------------------------------------------------
+[debug] 
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\Deiner\Desktop\BOOTCAMP\Frontend\SGS
+
+[info] 
+=== Project Setup
+[info] 
+[info] First, let's associate this project directory with a Firebase project.
+[info] You can create multiple project aliases by running firebase use --add, 
+[info] 
+[debug] [2026-05-07T23:30:42.122Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-05-07T23:30:42.123Z] > authorizing via signed-in user (deinergonzalezparedes12@gmail.com)
+[debug] [2026-05-07T23:30:42.125Z] Checked if tokens are valid: true, expires at: 1778199966212
+[debug] [2026-05-07T23:30:42.125Z] Checked if tokens are valid: true, expires at: 1778199966212
+[debug] [2026-05-07T23:30:42.126Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/sgs-201008 [none]
+[debug] [2026-05-07T23:30:43.182Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/sgs-201008 200
+[debug] [2026-05-07T23:30:43.182Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/sgs-201008 {"projectId":"sgs-201008","projectNumber":"98399868349","displayName":"sgs-201008","name":"projects/sgs-201008","resources":{"hostingSite":"sgs-201008"},"state":"ACTIVE","etag":"1_1928468c-890c-40c3-8022-66f6cd438653"}
+[info] i  Using project sgs-201008 (sgs-201008) . 
+[info] 
+=== Hosting Setup
+[info] 
+[debug] [2026-05-07T23:32:31.014Z] ExitPromptError: User force closed the prompt with SIGINT
+    at Interface.sigint (C:\Users\Deiner\AppData\Roaming\npm\node_modules\firebase-tools\node_modules\@inquirer\core\dist\commonjs\lib\create-prompt.js:101:37)
+    at Interface.emit (node:events:518:28)
+    at [_ttyWrite] [as _ttyWrite] (node:internal/readline/interface:1124:18)
+    at ReadStream.onkeypress (node:internal/readline/interface:263:20)
+    at ReadStream.emit (node:events:530:35)
+    at emitKeys (node:internal/readline/utils:370:14)
+    at emitKeys.next (<anonymous>)
+    at ReadStream.onData (node:internal/readline/emitKeypressEvents:64:36)
+    at ReadStream.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+[error] 
+[error] Error: An unexpected error has occurred.
