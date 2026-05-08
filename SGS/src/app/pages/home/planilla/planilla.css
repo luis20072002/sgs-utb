@@ -215,3 +215,83 @@
   }
   .aula-list { grid-template-columns: 1fr; }
 }
+
+/* Aula completada */
+.aula-card--done {
+  border-color: var(--success);
+  background: var(--success-bg, #f0fdf4);
+}
+.aula-card--done:hover {
+  border-color: var(--success);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.12);
+}
+
+.aula-card__icon--done {
+  background: var(--success-bg, #d1fae5) !important;
+}
+.aula-card__icon--done .material-icons {
+  color: var(--success, #10b981) !important;
+}
+
+/* Badge "Registrada" */
+.aula-card__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+.aula-card__status--done {
+  background: var(--success-bg, #d1fae5);
+  color: var(--success, #059669);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.aula-card__status--done .material-icons { font-size: 12px; }
+
+/* Resumen inline del registro */
+.aula-card__summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.aula-card__summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+.aula-card__summary-item .material-icons { font-size: 13px; }
+
+.aula-card__summary-item--yes {
+  background: var(--success-bg, #d1fae5);
+  color: var(--success, #059669);
+}
+.aula-card__summary-item--no {
+  background: var(--error-bg, #fff1f2);
+  color: var(--error, #e11d48);
+}
+
+/* Botón secundario (editar registro ya existente) */
+.btn-secondary {
+  height: 40px;
+  border: 1.5px solid var(--success, #10b981);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--success, #059669);
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: all 0.15s;
+}
+.btn-secondary:hover {
+  background: var(--success-bg, #d1fae5);
+}
+.btn-secondary .material-icons { font-size: 16px; }

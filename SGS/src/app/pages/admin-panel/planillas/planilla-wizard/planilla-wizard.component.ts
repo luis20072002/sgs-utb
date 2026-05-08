@@ -87,33 +87,33 @@ export class PlanillaWizardComponent implements OnInit {
     fecha_asignacion: new Date().toISOString().split('T')[0],
   };
 
-  edificioSeleccionado = computed(() =>
-    this.edificios.find(e => String(e.id_edificio) === String(this.form.id_edificio)) ?? null
-  );
+  edificioSeleccionado() {
+    return this.edificios.find(e => String(e.id_edificio) === String(this.form.id_edificio)) ?? null;
+  }
 
-  turnoSeleccionado = computed(() =>
-    this.turnos.find(t => String(t.id_turno) === String(this.form.id_turno)) ?? null
-  );
+  turnoSeleccionado() {
+    return this.turnos.find(t => String(t.id_turno) === String(this.form.id_turno)) ?? null;
+  }
 
-  auxiliarEdificio = computed(() => {
+  auxiliarEdificio() {
     const aux = this.auxiliares.find(a => String(a.id_usuario) === String(this.form.id_usuario));
     return aux?.id_edificio ?? null;
-  });
+  }
 
-  pisosDisponibles = computed(() => {
+pisosDisponibles() {
     const ed = this.edificioSeleccionado();
     if (!ed) return [];
     return Array.from({ length: ed.cantidad_pisos }, (_, i) => i + 1);
-  });
+  }
 
-  aulasPorPiso = computed(() => {
+aulasPorPiso() {
     const pisos = this.pisosSeleccionados();
     const aulas = this.aulasDisponibles();
     return pisos.map(p => ({
       piso: p,
       aulas: aulas.filter(a => a.piso === p),
     }));
-  });
+  }
 
   pisosTexto = computed(() => this.pisosSeleccionados().map(p => `Piso ${p}`).join(', '));
 
@@ -122,12 +122,19 @@ export class PlanillaWizardComponent implements OnInit {
     this.userService.getCursos().subscribe({ next: (c: any[]) => this.cursos.set(c) });
   }
 
-  onAuxiliarChange() {
+onAuxiliarChange() {
     const edificioId = this.auxiliarEdificio();
+    
     if (edificioId) {
       this.form.id_edificio = edificioId;
-      this.onEdificioChange();
+    } else {
+      // FIX: Limpiar el campo si el auxiliar no tiene edificio asignado
+      this.form.id_edificio = ''; 
     }
+    
+    // Siempre debemos disparar el cambio para resetear los pisos y aulas
+    // independientemente de si hay edificio o se acaba de limpiar.
+    this.onEdificioChange();
   }
 
   onEdificioChange() {

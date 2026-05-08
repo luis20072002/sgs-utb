@@ -1,3 +1,5 @@
+<!-- src/app/pages/home/planilla/planilla.html -->
+
 <!-- Loading -->
 <div class="page-loader" *ngIf="isLoading()">
   <div class="page-loader__spinner"></div>
@@ -78,10 +80,14 @@
       </div>
 
       <div class="aula-list" *ngIf="aulas().length > 0">
-        <article *ngFor="let aula of aulas()" class="aula-card">
+        <article
+          *ngFor="let aula of aulas()"
+          class="aula-card"
+          [class.aula-card--done]="!!getRegistro(aula)">
+
           <div class="aula-card__head">
-            <div class="aula-card__icon">
-              <span class="material-icons">meeting_room</span>
+            <div class="aula-card__icon" [class.aula-card__icon--done]="!!getRegistro(aula)">
+              <span class="material-icons">{{ getRegistro(aula) ? 'check_circle' : 'meeting_room' }}</span>
             </div>
             <div class="aula-card__info">
               <h4 class="aula-card__title">{{ aula.codigo }}</h4>
@@ -90,19 +96,37 @@
                 <span><span class="material-icons">groups</span> {{ aula.capacidad }} cap.</span>
               </p>
             </div>
+            <!-- Badge de estado -->
+            <span class="aula-card__status aula-card__status--done" *ngIf="getRegistro(aula)">
+              <span class="material-icons">task_alt</span>
+              Registrada
+            </span>
           </div>
 
-          <!-- TODO: cuando exista endpoint de registros, mostrar el docente
-               asignado, materia, hora_inicio y hora_fin de la clase actual.
-               Ahora mostramos datos del aula (sin la programación de clase). -->
-          <p class="aula-card__hint">
+          <!-- Resumen del registro existente -->
+          <div class="aula-card__summary" *ngIf="getRegistro(aula) as reg">
+            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.asistencia_docente" [class.aula-card__summary-item--no]="!reg.asistencia_docente">
+              <span class="material-icons">person</span>
+              Docente: {{ reg.asistencia_docente ? 'Presente' : 'Ausente' }}
+            </span>
+            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.uso_audiovisuales" [class.aula-card__summary-item--no]="!reg.uso_audiovisuales">
+              <span class="material-icons">videocam</span>
+              A/V: {{ reg.uso_audiovisuales ? 'Sí' : 'No' }}
+            </span>
+          </div>
+
+          <!-- Hint cuando no hay registro -->
+          <p class="aula-card__hint" *ngIf="!getRegistro(aula)">
             <span class="material-icons">info</span>
-            Información de docente y materia disponible al registrar.
+            Aún no has registrado esta aula en este turno.
           </p>
 
-          <button class="btn-primary aula-card__cta" (click)="registrarAula(aula)">
-            <span class="material-icons">edit_note</span>
-            Registrar aula
+          <button
+            class="btn-primary aula-card__cta"
+            [class.btn-secondary]="!!getRegistro(aula)"
+            (click)="registrarAula(aula)">
+            <span class="material-icons">{{ getRegistro(aula) ? 'edit' : 'edit_note' }}</span>
+            {{ getRegistro(aula) ? 'Editar registro' : 'Registrar aula' }}
           </button>
         </article>
       </div>
@@ -110,3 +134,12 @@
 
   </ng-container>
 </ng-container>
+
+<!-- Modal de registro -->
+<app-registro-modal
+  [open]="modalOpen()"
+  [aula]="aulaSeleccionada()"
+  [idPlanilla]="planilla()?.id_planillas ?? null"
+  (guardado)="onRegistroGuardado($event)"
+  (cancelado)="onModalCancelado()">
+</app-registro-modal>
