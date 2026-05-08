@@ -1,0 +1,206 @@
+<!-- src/app/pages/home/planilla/registro-modal/registro-modal.html -->
+
+<div class="rm-overlay" *ngIf="open" (click)="onOverlayClick()">
+  <div class="rm-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+    <!-- ══════════════ CABECERA ══════════════ -->
+    <header class="rm-head">
+      <div class="rm-head__icon">
+        <span class="material-icons">edit_note</span>
+      </div>
+      <div class="rm-head__info">
+        <h2 class="rm-head__title">Registrar aula</h2>
+        <p class="rm-head__sub">
+          <span class="material-icons">meeting_room</span>
+          {{ aula?.codigo ?? '—' }}
+          <span class="rm-head__sep">·</span>
+          Piso {{ aula?.piso ?? '—' }}
+        </p>
+      </div>
+      <button
+        class="rm-close"
+        type="button"
+        (click)="onCancel()"
+        [disabled]="isSubmitting()"
+        aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <!-- ══════════════ CUERPO ══════════════ -->
+    <div class="rm-body">
+
+      <!-- ── Ya registrada: modo edición ── -->
+      <div class="rm-banner rm-banner--edit" *ngIf="registroExistente()">
+        <span class="material-icons">info</span>
+        <span>Esta aula ya fue registrada. Puedes editar los datos mientras el turno esté activo.</span>
+      </div>
+
+      <!-- ═══ SECCIÓN 1: Asistencia + Audiovisuales ═══ -->
+      <section class="rm-section">
+        <h3 class="rm-section__title">
+          <span class="material-icons">how_to_reg</span>
+          Información del turno
+        </h3>
+
+        <div class="rm-toggles">
+
+          <!-- Asistencia docente -->
+          <div class="rm-toggle" [class.rm-toggle--yes]="form.asistencia" [class.rm-toggle--no]="!form.asistencia">
+            <div class="rm-toggle__label">
+              <span class="material-icons">person</span>
+              <div>
+                <span class="rm-toggle__title">Asistencia del docente</span>
+                <span class="rm-toggle__sub">¿El docente se presentó al turno?</span>
+              </div>
+            </div>
+            <div class="rm-toggle__btns">
+              <button
+                type="button"
+                class="rm-toggle__btn"
+                [class.rm-toggle__btn--active-yes]="form.asistencia === true"
+                (click)="form.asistencia = true">
+                <span class="material-icons">check_circle</span>
+                Sí
+              </button>
+              <button
+                type="button"
+                class="rm-toggle__btn"
+                [class.rm-toggle__btn--active-no]="form.asistencia === false"
+                (click)="form.asistencia = false">
+                <span class="material-icons">cancel</span>
+                No
+              </button>
+            </div>
+          </div>
+
+          <!-- Uso de audiovisuales -->
+          <div class="rm-toggle" [class.rm-toggle--yes]="form.audiovisuales" [class.rm-toggle--no]="!form.audiovisuales">
+            <div class="rm-toggle__label">
+              <span class="material-icons">videocam</span>
+              <div>
+                <span class="rm-toggle__title">Medios audiovisuales</span>
+                <span class="rm-toggle__sub">¿Se usaron proyector, pantalla u otros?</span>
+              </div>
+            </div>
+            <div class="rm-toggle__btns">
+              <button
+                type="button"
+                class="rm-toggle__btn"
+                [class.rm-toggle__btn--active-yes]="form.audiovisuales === true"
+                (click)="form.audiovisuales = true">
+                <span class="material-icons">check_circle</span>
+                Sí
+              </button>
+              <button
+                type="button"
+                class="rm-toggle__btn"
+                [class.rm-toggle__btn--active-no]="form.audiovisuales === false"
+                (click)="form.audiovisuales = false">
+                <span class="material-icons">cancel</span>
+                No
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ═══ SECCIÓN 2: Novedad (opcional) ═══ -->
+      <section class="rm-section">
+        <div class="rm-section__header">
+          <h3 class="rm-section__title">
+            <span class="material-icons">notifications_none</span>
+            Novedad
+            <span class="rm-badge rm-badge--opt">Opcional</span>
+          </h3>
+          <button
+            type="button"
+            class="rm-toggle-section"
+            [class.rm-toggle-section--active]="showNovedad()"
+            (click)="toggleNovedad()">
+            <span class="material-icons">{{ showNovedad() ? 'expand_less' : 'add' }}</span>
+            {{ showNovedad() ? 'Quitar' : 'Agregar' }}
+          </button>
+        </div>
+
+        <div class="rm-textarea-wrap" *ngIf="showNovedad()">
+          <textarea
+            class="rm-textarea"
+            rows="3"
+            placeholder="Describe la novedad observada en el aula (ej: puerta dañada, ventana rota, mal olor)…"
+            [(ngModel)]="form.novedadDesc"
+            [disabled]="isSubmitting()">
+          </textarea>
+          <span class="rm-textarea__hint">
+            <span class="material-icons">info</span>
+            Las novedades son informativas y no generan seguimiento de estado.
+          </span>
+        </div>
+      </section>
+
+      <!-- ═══ SECCIÓN 3: Solicitud (opcional) ═══ -->
+      <section class="rm-section rm-section--last">
+        <div class="rm-section__header">
+          <h3 class="rm-section__title">
+            <span class="material-icons">help_outline</span>
+            Solicitud
+            <span class="rm-badge rm-badge--opt">Opcional</span>
+          </h3>
+          <button
+            type="button"
+            class="rm-toggle-section"
+            [class.rm-toggle-section--active]="showSolicitud()"
+            (click)="toggleSolicitud()">
+            <span class="material-icons">{{ showSolicitud() ? 'expand_less' : 'add' }}</span>
+            {{ showSolicitud() ? 'Quitar' : 'Agregar' }}
+          </button>
+        </div>
+
+        <div class="rm-textarea-wrap" *ngIf="showSolicitud()">
+          <textarea
+            class="rm-textarea"
+            rows="3"
+            placeholder="Describe el problema que requiere atención (ej: proyector sin imagen, aire acondicionado no funciona)…"
+            [(ngModel)]="form.solicitudDesc"
+            [disabled]="isSubmitting()">
+          </textarea>
+          <span class="rm-textarea__hint rm-textarea__hint--warn">
+            <span class="material-icons">warning_amber</span>
+            Las solicitudes quedan pendientes de revisión por el administrador si no puedes resolverlas.
+          </span>
+        </div>
+      </section>
+
+      <!-- Error general -->
+      <div class="rm-alert rm-alert--error" *ngIf="errorMsg()">
+        <span class="material-icons">error</span>
+        {{ errorMsg() }}
+      </div>
+
+    </div>
+
+    <!-- ══════════════ FOOTER ══════════════ -->
+    <footer class="rm-foot">
+      <button
+        type="button"
+        class="rm-btn rm-btn--ghost"
+        (click)="onCancel()"
+        [disabled]="isSubmitting()">
+        Cancelar
+      </button>
+      <button
+        type="button"
+        class="rm-btn rm-btn--primary"
+        (click)="onSubmit()"
+        [disabled]="isSubmitting() || !isFormValid()">
+        <span class="rm-spinner" *ngIf="isSubmitting()"></span>
+        <span class="material-icons" *ngIf="!isSubmitting()">save</span>
+        <span *ngIf="!isSubmitting()">
+          {{ registroExistente() ? 'Actualizar registro' : 'Guardar registro' }}
+        </span>
+      </button>
+    </footer>
+
+  </div>
+</div>
