@@ -1,0 +1,70 @@
+/* src/app/pages/admin-panel/admin-panel.css */
+
+/* ─── Loading global ──────────────────────────────────────────── */
+.global-loading {
+  position: fixed;
+  inset: 0;
+  background: var(--white);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  z-index: 9999;
+}
+.global-loading__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--brand);
+  color: var(--white);
+  display: grid;
+  place-items: center;
+}
+.global-loading__icon .material-icons {
+  font-size: 28px;
+}
+.global-loading__spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--brand-50);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Layout principal ────────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-soft);
+}
+
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-content {
+  flex: 1;
+  padding: 20px 16px 32px;
+  max-width: 100%;
+}
+
+@media (min-width: 768px) {
+  .app-content { padding: 24px 28px 40px; }
+}
+
+@media (min-width: 1280px) {
+  .app-content {
+    padding: 28px 36px 48px;
+    max-width: 1440px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}

@@ -1,51 +1,55 @@
-<aside class="sidebar">
-  <!-- Logo -->
+<!-- src/app/components/sidebar/sidebar.html -->
+
+<!-- Overlay (solo móvil) -->
+<div
+  class="sidebar-overlay"
+  [class.sidebar-overlay--visible]="isOpen"
+  (click)="close.emit()"
+  aria-hidden="true">
+</div>
+
+<aside
+  class="sidebar"
+  [class.sidebar--open]="isOpen">
+
+  <!-- Logo + cerrar mobile -->
   <div class="sidebar__brand">
-    <span class="material-icons sidebar__brand-icon">school</span>
-    <span class="sidebar__brand-text">EduGestión <span class="sidebar__brand-version">v2.0</span></span>
+    <div class="sidebar__brand-logo">
+      <span class="material-icons">verified_user</span>
+    </div>
+    <div class="sidebar__brand-text">
+      <span class="sidebar__brand-name">SGS</span>
+      <span class="sidebar__brand-sub">Panel Admin</span>
+    </div>
+    <button
+      class="sidebar__close"
+      type="button"
+      (click)="close.emit()"
+      aria-label="Cerrar menú">
+      <span class="material-icons">close</span>
+    </button>
   </div>
 
+  <!-- Navegación -->
   <nav class="sidebar__nav">
-    <!-- Dashboard -->
-    <p class="sidebar__section-label">Dashboard</p>
-    <button
-      *ngFor="let item of dashboardItems"
-      class="sidebar__item"
-      [class.sidebar__item--active]="isActive(item.id)"
-      (click)="changeTab(item.id)"
-    >
-      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
-      <span>{{ item.label }}</span>
-    </button>
+    <ng-container *ngFor="let section of sections">
+      <p class="sidebar__section-label">{{ section.label }}</p>
 
-    <!-- Gestión -->
-    <p class="sidebar__section-label">Gestión</p>
-    <button
-      *ngFor="let item of gestionItems"
-      class="sidebar__item"
-      [class.sidebar__item--active]="isActive(item.id)"
-      (click)="changeTab(item.id)"
-    >
-      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
-      <span>{{ item.label }}</span>
-    </button>
-
-    <!-- Informes -->
-    <p class="sidebar__section-label">Informes</p>
-    <button
-      *ngFor="let item of informesItems"
-      class="sidebar__item"
-      [class.sidebar__item--active]="isActive(item.id)"
-      (click)="changeTab(item.id)"
-    >
-      <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
-      <span>{{ item.label }}</span>
-    </button>
+      <a
+        *ngFor="let item of section.items"
+        [routerLink]="item.path"
+        routerLinkActive="sidebar__item--active"
+        class="sidebar__item"
+        (click)="onItemClick()">
+        <span class="material-icons sidebar__item-icon">{{ item.icon }}</span>
+        <span class="sidebar__item-label">{{ item.label }}</span>
+      </a>
+    </ng-container>
   </nav>
 
-  <!-- Status footer -->
+  <!-- Footer status -->
   <div class="sidebar__status">
     <span class="sidebar__status-dot"></span>
-    <span class="sidebar__status-text">Status API</span>
+    <span class="sidebar__status-text">Sistema operativo</span>
   </div>
 </aside>

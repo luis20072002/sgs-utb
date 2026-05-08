@@ -1,0 +1,32 @@
+<!-- src/app/pages/admin-panel/admin-panel.html -->
+
+<!-- Loading global -->
+<div class="global-loading" *ngIf="isLoading()">
+  <div class="global-loading__icon">
+    <span class="material-icons">verified_user</span>
+  </div>
+  <div class="global-loading__spinner"></div>
+</div>
+
+<!-- App layout -->
+<div class="app-layout" *ngIf="!isLoading()">
+
+  <app-sidebar
+    [isOpen]="sidebarOpen()"
+    (close)="closeSidebar()">
+  </app-sidebar>
+
+  <div class="app-main">
+    <app-header-admin
+      [user]="currentUser()"
+      [pageTitle]="pageTitle()"
+      (toggleSidebar)="toggleSidebar()"
+      (logout)="onLogout()">
+    </app-header-admin>
+
+    <main class="app-content">
+      <!-- Aquí se montan todas las subpantallas vía router -->
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

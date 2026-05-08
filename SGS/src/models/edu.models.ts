@@ -1,18 +1,21 @@
+// src/models/edu.models.ts
+export type UserRole = 'administrador' | 'auxiliar';
+ 
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'administrador' | 'usuario';
+  role: UserRole;
   avatar?: string;
 }
  
 export interface KPIStats {
   totalUsers: number;
-  totalTeachers: number;
-  totalCourses: number;
-  totalClassrooms: number;
-  totalShifts: number;
-  totalTemplates: number;
+  totalDocentes: number;
+  totalAuxiliares: number;
+  totalReports: number;
+  totalProyectoresFallando: number;
+  totalProfesoresNoAsistieron: number;
 }
  
 export interface ActivityLog {
@@ -32,42 +35,13 @@ export interface Alert {
  
 export interface MenuItem {
   id: string;
-  icon: string;   // nombre de icono (Material Icons o SVG inline)
+  icon: string;
   label: string;
-  path: string;}
-
-
-  // ── Reemplazar / actualizar en: src/models/edu.models.ts ──────────
-// La interfaz AulaCheck ahora tiene campos adicionales.
-// Reemplaza la versión anterior si ya la tenías del v1.
-
-export interface AulaCheck {
-  id: string;
-  aulaNombre: string;
-  docenteNombre: string;
-  nombreClase: string;             // NUEVO: nombre de la materia
-  codigoClase: string;             // NUEVO: código ej. "ALG-101"
-  estudiantesMatriculados: number; // NUEVO: cantidad matriculada
-  horaInicio: string;              // NUEVO: formato "HH:mm"
-  asistenciaDocente: boolean;
-  novedades: string;
-  completado: boolean;
+  path: string;
 }
-
-export interface PlanillaTrabajo {
-  id: string;
-  edificio: string;
-  turno: string;
-  auxiliarId: string;
-  fecha: string;
-  aulas: AulaCheck[];
+ 
+export interface ChartData {
+  label: string;
+  value: number;
+  color: string;
 }
-
-// Actualizar también la interfaz User para incluir el rol 'auxiliar':
-// export interface User {
-//   id: string;
-//   name: string;
-//   email: string;
-//   role: 'administrador' | 'auxiliar' | 'docente' | 'estudiante';
-//   avatar?: string;
-// }

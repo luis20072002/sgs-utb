@@ -1,0 +1,425 @@
+/* src/app/pages/admin-panel/turnos/turnos.css */
+
+/* ─── Page head ──────────────────────────────────────────────── */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.page-head__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+.page-head__sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--brand);
+  color: var(--white);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
+}
+.btn-primary:hover:not(:disabled) { background: var(--brand-600); }
+.btn-primary:active:not(:disabled) { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary .material-icons { font-size: 18px; }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  background: var(--bg-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--border);
+  border-color: var(--border-strong);
+}
+.btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ghost .material-icons { font-size: 17px; }
+
+.btn-ghost--danger {
+  color: var(--error);
+  background: var(--white);
+  border-color: var(--border);
+}
+.btn-ghost--danger:hover:not(:disabled) {
+  background: var(--error-bg);
+  border-color: var(--error);
+}
+
+.btn-sm { padding: 7px 12px; font-size: 12px; }
+
+/* ─── State cards (loading / error / empty) ──────────────────── */
+.state-card {
+  background: var(--white);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 50px 24px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.state-card .material-icons {
+  font-size: 44px !important;
+  color: var(--text-faint);
+  margin-bottom: 8px;
+}
+.state-card h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 6px 0 4px;
+}
+.state-card p {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 420px;
+  margin: 0 auto 16px;
+  line-height: 1.5;
+}
+
+.state-card--error { border-color: var(--error); border-style: solid; background: var(--error-bg); }
+.state-card--error .material-icons { color: var(--error); }
+.state-card--error p { color: var(--error); margin-bottom: 14px; }
+
+.state-card--loading { border-style: solid; border-color: var(--border); }
+
+.spinner-lg {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--brand-50);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: var(--white);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ─── Grid de turnos ─────────────────────────────────────────── */
+.turnos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 600px) { .turnos-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1100px){ .turnos-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.turno-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.turno-card:hover {
+  border-color: var(--brand);
+  box-shadow: 0 8px 18px rgba(15, 23, 41, 0.06);
+}
+
+.turno-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.turno-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--brand-50);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.turno-card__icon .material-icons { font-size: 22px; }
+
+.turno-card__title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+.turno-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.2;
+}
+.turno-card__pill {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--brand-50);
+  color: var(--brand);
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.turno-card__times {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-soft);
+  padding: 12px;
+  border-radius: var(--radius-sm);
+}
+.time-block {
+  flex: 1;
+  text-align: center;
+}
+.time-block__label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.time-block__value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.time-arrow {
+  color: var(--text-faint);
+  display: grid;
+  place-items: center;
+}
+.time-arrow .material-icons { font-size: 20px; }
+
+.turno-card__actions {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.turno-card__actions .btn-ghost,
+.turno-card__actions .btn-ghost--danger {
+  flex: 1;
+  justify-content: center;
+}
+
+/* ─── Modal genérico (usable en otras subpantallas) ──────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 41, 0.55);
+  backdrop-filter: blur(3px);
+  display: grid;
+  place-items: center;
+  z-index: 90;
+  padding: 16px;
+  animation: fadeIn 0.18s ease-out;
+}
+
+.modal-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgba(15, 23, 41, 0.2);
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: zoomIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoomIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: var(--brand-50);
+  color: var(--brand);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.modal-head__icon .material-icons { font-size: 20px; }
+
+.modal-head__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.modal-head__sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.modal-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s;
+}
+.modal-close:hover:not(:disabled) {
+  background: var(--bg-soft);
+  color: var(--text);
+}
+.modal-close:disabled { opacity: 0.4; cursor: not-allowed; }
+.modal-close .material-icons { font-size: 20px; }
+
+.modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-foot {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-soft);
+  justify-content: flex-end;
+}
+
+/* ─── Form controls ──────────────────────────────────────────── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 480px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.form-label .material-icons {
+  font-size: 16px;
+  color: var(--brand);
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-size: 14px;
+  color: var(--text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-glow);
+}
+.form-input::placeholder { color: var(--text-faint); }
+
+.form-group--error .form-input {
+  border-color: var(--error);
+}
+.form-group--error .form-input:focus {
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.15);
+}
+
+.form-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--error);
+  font-weight: 500;
+}
+.form-error .material-icons { font-size: 13px; }
+
+.form-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 500;
+}
+.form-warning .material-icons { font-size: 16px; }
+.form-warning--error {
+  background: var(--error-bg);
+  color: var(--error);
+}

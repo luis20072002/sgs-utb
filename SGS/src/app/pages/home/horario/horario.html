@@ -1,0 +1,87 @@
+<header class="page-head">
+  <div>
+    <h1 class="page-head__title">Mi horario</h1>
+    <p class="page-head__sub">Semana del {{ weekLabel }}</p>
+  </div>
+</header>
+
+<!-- Loading -->
+<div class="page-loader" *ngIf="isLoading()">
+  <div class="page-loader__spinner"></div>
+  <p>Cargando horario…</p>
+</div>
+
+<!-- Error -->
+<div class="alert alert--error" *ngIf="errorMsg() && !isLoading()">
+  <span class="material-icons">error</span> {{ errorMsg() }}
+</div>
+
+<ng-container *ngIf="!isLoading() && !errorMsg()">
+
+  <!-- Calendario semanal -->
+  <div class="calendar">
+    <div *ngFor="let d of days()" class="day" [class.day--today]="d.isToday">
+
+      <header class="day__head">
+        <span class="day__short">{{ d.shortLabel }}</span>
+        <span class="day__num">{{ d.date.getDate() }}</span>
+        <span class="day__today-pill" *ngIf="d.isToday">Hoy</span>
+      </header>
+
+      <div class="day__body">
+
+        <!-- Sin asignación -->
+        <div class="day__empty" *ngIf="d.horarios.length === 0 && d.excepciones.length === 0">
+          <span class="material-icons">remove</span>
+          <span>Sin asignación</span>
+        </div>
+
+        <!-- Excepciones (toman prioridad visual) -->
+        <div class="exception" *ngFor="let e of d.excepciones">
+          <span class="material-icons">priority_high</span>
+          <div>
+            <span class="exception__title">{{ excepcionLabel(e) }}</span>
+            <span class="exception__motivo" *ngIf="e.motivo">{{ e.motivo }}</span>
+          </div>
+        </div>
+
+        <!-- Turnos del día -->
+        <div class="shift" *ngFor="let h of d.horarios">
+          <div class="shift__row">
+            <span class="material-icons">schedule</span>
+            <div>
+              <span class="shift__name">{{ turnoLabel(h.id_turno_1) }}</span>
+              <span class="shift__time">{{ turnoHora(h.id_turno_1) }}</span>
+            </div>
+          </div>
+          <div class="shift__row" *ngIf="h.id_turno_2">
+            <span class="material-icons">schedule</span>
+            <div>
+              <span class="shift__name">{{ turnoLabel(h.id_turno_2) }}</span>
+              <span class="shift__time">{{ turnoHora(h.id_turno_2) }}</span>
+            </div>
+          </div>
+          <p class="shift__period">
+            <span class="material-icons">event</span>
+            Período: {{ h.periodo_vigencia }}
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Leyenda -->
+  <div class="legend">
+    <span class="legend__item">
+      <span class="legend__dot legend__dot--shift"></span> Turno asignado
+    </span>
+    <span class="legend__item">
+      <span class="legend__dot legend__dot--exception"></span> Excepción
+    </span>
+    <span class="legend__item">
+      <span class="legend__dot legend__dot--today"></span> Día actual
+    </span>
+  </div>
+
+</ng-container>

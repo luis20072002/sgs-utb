@@ -1,0 +1,60 @@
+<header class="page-head">
+  <div>
+    <h1 class="page-head__title">Mis novedades</h1>
+    <p class="page-head__sub">Novedades que has reportado durante tus recorridos</p>
+  </div>
+</header>
+
+<!-- Filtros de fecha -->
+<div class="filters">
+  <label class="filters__field">
+    <span class="filters__label">Desde</span>
+    <input type="date" [ngModel]="fechaInicio()" (ngModelChange)="fechaInicio.set($event)">
+  </label>
+  <label class="filters__field">
+    <span class="filters__label">Hasta</span>
+    <input type="date" [ngModel]="fechaFin()" (ngModelChange)="fechaFin.set($event)">
+  </label>
+  <button class="btn-ghost" (click)="aplicar()">Aplicar</button>
+  <button class="btn-link" *ngIf="fechaInicio() || fechaFin()" (click)="limpiar()">Limpiar</button>
+</div>
+
+<!-- Loading -->
+<div class="page-loader" *ngIf="isLoading()">
+  <div class="page-loader__spinner"></div>
+  <p>Cargando novedades…</p>
+</div>
+
+<!-- Error -->
+<div class="alert alert--error" *ngIf="errorMsg() && !isLoading()">
+  <span class="material-icons">error</span> {{ errorMsg() }}
+</div>
+
+<!-- Empty -->
+<div class="empty-list" *ngIf="!isLoading() && !errorMsg() && novedades().length === 0">
+  <span class="material-icons">notifications_off</span>
+  <p>No tienes novedades reportadas en este rango de fechas.</p>
+</div>
+
+<!-- Timeline agrupado por día -->
+<div class="timeline" *ngIf="!isLoading() && novedades().length > 0">
+
+  <section class="timeline__group" *ngFor="let group of groupedByDay()">
+    <h3 class="timeline__day">{{ formatDayLabel(group.day) }}</h3>
+
+    <div class="timeline__items">
+      <article *ngFor="let n of group.items" class="nov">
+        <div class="nov__time">{{ formatHora(n.fecha_novedad) }}</div>
+        <div class="nov__line"></div>
+        <div class="nov__body">
+          <div class="nov__head">
+            <span class="material-icons nov__icon">notifications_none</span>
+            <span class="nov__ref">Registro #{{ n.id_registro }}</span>
+          </div>
+          <p class="nov__desc">{{ n.descripcion }}</p>
+        </div>
+      </article>
+    </div>
+  </section>
+
+</div>

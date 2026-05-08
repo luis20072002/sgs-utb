@@ -1,0 +1,35 @@
+<!-- src/app/components/confirm-dialog/confirm-dialog.html -->
+<div class="cd-backdrop" *ngIf="open" (click)="onBackdrop()">
+  <div class="cd-card" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+    <div class="cd-icon" [class.cd-icon--danger]="variant === 'danger'"
+                         [class.cd-icon--warning]="variant === 'warning'"
+                         [class.cd-icon--info]="variant === 'info'">
+      <span class="material-icons">{{ icon }}</span>
+    </div>
+
+    <h3 class="cd-title">{{ title }}</h3>
+    <p class="cd-message" *ngIf="message">{{ message }}</p>
+
+    <div class="cd-actions">
+      <button
+        type="button"
+        class="cd-btn cd-btn--ghost"
+        (click)="cancel.emit()"
+        [disabled]="loading">
+        {{ cancelText }}
+      </button>
+      <button
+        type="button"
+        class="cd-btn"
+        [class.cd-btn--danger]="variant === 'danger'"
+        [class.cd-btn--warning]="variant === 'warning'"
+        [class.cd-btn--info]="variant === 'info'"
+        (click)="onConfirm()"
+        [disabled]="loading">
+        <span class="cd-spinner" *ngIf="loading"></span>
+        <span *ngIf="!loading">{{ confirmText }}</span>
+      </button>
+    </div>
+  </div>
+</div>

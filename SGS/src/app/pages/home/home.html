@@ -1,0 +1,92 @@
+<div class="home-shell">
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- TOP NAV (visible solo en desktop ≥ 768px)                    -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header class="topnav">
+    <div class="topnav__inner">
+
+      <!-- Brand -->
+      <a routerLink="/home" class="topnav__brand">
+        <span class="topnav__brand-logo">
+          <span class="material-icons">school</span>
+        </span>
+        <span class="topnav__brand-text">SGS</span>
+      </a>
+
+      <!-- Nav links (desktop) -->
+      <nav class="topnav__links">
+        <a *ngFor="let item of navItems"
+           [routerLink]="item.path"
+           [routerLinkActiveOptions]="{ exact: item.id === 'dashboard' }"
+           routerLinkActive="topnav__link--active"
+           class="topnav__link">
+          <span class="material-icons topnav__link-icon">{{ item.icon }}</span>
+          <span class="topnav__link-label">{{ item.label }}</span>
+        </a>
+      </nav>
+
+      <!-- User menu (desktop) -->
+      <div class="topnav__user" (click)="$event.stopPropagation()">
+        <button class="user-pill" (click)="toggleUserMenu()" type="button">
+          <span class="user-pill__avatar">{{ userInitials }}</span>
+          <span class="user-pill__name">{{ user()?.nombre ?? 'Auxiliar' }}</span>
+          <span class="material-icons user-pill__chev">expand_more</span>
+        </button>
+
+        <div class="user-menu" *ngIf="showUserMenu()">
+          <div class="user-menu__head">
+            <p class="user-menu__name">{{ user()?.nombre }}</p>
+            <p class="user-menu__email">{{ user()?.correo ?? '—' }}</p>
+          </div>
+          <a routerLink="/home/perfil" class="user-menu__item" (click)="closeUserMenu()">
+            <span class="material-icons">person_outline</span>
+            Mi perfil
+          </a>
+          <button class="user-menu__item user-menu__item--danger" (click)="logout()">
+            <span class="material-icons">logout</span>
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- MOBILE TOPBAR (visible solo en mobile < 768px)               -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <header class="mobilebar">
+    <div class="mobilebar__brand">
+      <span class="topnav__brand-logo">
+        <span class="material-icons">school</span>
+      </span>
+      <span class="topnav__brand-text">SGS</span>
+    </div>
+    <button class="mobilebar__logout" (click)="logout()" aria-label="Cerrar sesión">
+      <span class="material-icons">logout</span>
+    </button>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- CONTENT (cada subpantalla se renderiza aquí)                 -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <main class="home-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <!-- BOTTOM NAV (visible solo en mobile < 768px)                  -->
+  <!-- ═══════════════════════════════════════════════════════════ -->
+  <nav class="bottomnav">
+    <a *ngFor="let item of navItems"
+       [routerLink]="item.path"
+       [routerLinkActiveOptions]="{ exact: item.id === 'dashboard' }"
+       routerLinkActive="bottomnav__item--active"
+       class="bottomnav__item">
+      <span class="material-icons bottomnav__icon">{{ item.icon }}</span>
+      <span class="bottomnav__label">{{ item.label }}</span>
+    </a>
+  </nav>
+
+</div>

@@ -1,15 +1,27 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+// src/app/app.config.ts
+import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient ,withInterceptors} from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+
 import { routes } from './app.routes';
-import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { authInterceptor } from './interceptors/auth-interceptor';
 
+/**
+ * Configuración global de la app.
+ *
+ * - provideRouter: rutas
+ * - provideHttpClient: cliente HTTP con interceptor de auth
+ * - provideCharts: registra los componentes de Chart.js para ng2-charts
+ *   (necesario para que los `<canvas baseChart>` rendericen).
+ *
+ * NOTA: este proyecto está configurado en modo zoneless (sin Zone.js)
+ * desde main.ts, por eso NO usamos provideZoneChangeDetection.
+ */
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideBrowserGlobalErrorListeners(),
-    provideRouter(routes), provideClientHydration(withEventReplay()),
-    provideHttpClient(withInterceptors([authInterceptor]))
+    provideRouter(routes),
+    provideHttpClient(withInterceptors([authInterceptor])),
+    provideCharts(withDefaultRegisterables()),
   ]
 };
-

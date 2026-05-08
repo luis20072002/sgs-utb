@@ -1,0 +1,262 @@
+<!-- src/app/pages/admin-panel/reportes/reportes.html -->
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<section class="page-head">
+  <div>
+    <h2 class="page-head__title">Reportes</h2>
+    <p class="page-head__sub">
+      Genera y descarga reportes del sistema filtrados por tipo, fecha y edificio.
+    </p>
+  </div>
+</section>
+
+<div class="reportes-layout" [formGroup]="form">
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Paso 1 — Tipo de reporte                                            -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="config-section">
+    <h3 class="config-section__title">
+      <span class="step-badge">1</span>
+      Tipo de reporte
+    </h3>
+
+    <div class="tipo-grid">
+      <button
+        *ngFor="let r of REPORTES"
+        type="button"
+        class="tipo-card"
+        [class.tipo-card--active]="tipoSeleccionado() === r.tipo"
+        (click)="selectTipo(r.tipo)">
+        <span class="tipo-card__icon material-icons">{{ r.icon }}</span>
+        <span class="tipo-card__label">{{ r.label }}</span>
+        <span class="tipo-card__desc">{{ r.descripcion }}</span>
+        <span class="tipo-card__check material-icons" *ngIf="tipoSeleccionado() === r.tipo">
+          check_circle
+        </span>
+      </button>
+    </div>
+
+    <span class="form-error" *ngIf="fieldHasError('tipo')">
+      <span class="material-icons">error_outline</span> Selecciona un tipo de reporte
+    </span>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Paso 2 — Filtros                                                    -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="config-section">
+    <h3 class="config-section__title">
+      <span class="step-badge">2</span>
+      Filtros
+    </h3>
+
+    <div class="filters-grid">
+
+      <!-- Rango de fechas -->
+      <div class="form-group" [class.form-group--error]="fieldHasError('fecha_inicio')">
+        <label class="form-label">
+          <span class="material-icons">calendar_today</span>
+          Desde
+        </label>
+        <input type="date" class="form-input" formControlName="fecha_inicio">
+        <span class="form-error" *ngIf="fieldHasError('fecha_inicio')">
+          <span class="material-icons">error_outline</span> Requerido
+        </span>
+      </div>
+
+      <div class="form-group" [class.form-group--error]="fieldHasError('fecha_fin')">
+        <label class="form-label">
+          <span class="material-icons">event</span>
+          Hasta
+        </label>
+        <input type="date" class="form-input" formControlName="fecha_fin">
+        <span class="form-error" *ngIf="fieldHasError('fecha_fin')">
+          <span class="material-icons">error_outline</span> Requerido
+        </span>
+      </div>
+
+      <!-- Edificio -->
+      <div class="form-group">
+        <label class="form-label">
+          <span class="material-icons">business</span>
+          Edificio
+          <span class="form-label__optional">(opcional)</span>
+        </label>
+        <select class="form-input form-select" formControlName="id_edificio">
+          <option [ngValue]="null">Todos los edificios</option>
+          <option *ngFor="let ed of edificios()" [value]="ed.id_edificio">
+            {{ ed.nombre }} ({{ ed.codigo }})
+          </option>
+        </select>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Paso 3 — Formato de exportación                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="config-section">
+    <h3 class="config-section__title">
+      <span class="step-badge">3</span>
+      Formato de exportación
+    </h3>
+
+    <div class="formato-options">
+
+      <label class="formato-card" [class.formato-card--active]="form.get('formato')?.value === 'excel'">
+        <input type="radio" value="excel" formControlName="formato">
+        <div class="formato-card__body">
+          <span class="formato-card__icon formato-card__icon--excel material-icons">table_chart</span>
+          <div>
+            <span class="formato-card__name">Excel</span>
+            <span class="formato-card__ext">.xlsx</span>
+          </div>
+          <p class="formato-card__desc">
+            Hoja de cálculo editable. Ideal para análisis y filtrado adicional de datos.
+          </p>
+        </div>
+        <span class="formato-card__check material-icons" *ngIf="form.get('formato')?.value === 'excel'">
+          check_circle
+        </span>
+      </label>
+
+      <label class="formato-card" [class.formato-card--active]="form.get('formato')?.value === 'pdf'">
+        <input type="radio" value="pdf" formControlName="formato">
+        <div class="formato-card__body">
+          <span class="formato-card__icon formato-card__icon--pdf material-icons">picture_as_pdf</span>
+          <div>
+            <span class="formato-card__name">PDF</span>
+            <span class="formato-card__ext">.pdf</span>
+          </div>
+          <p class="formato-card__desc">
+            Documento listo para imprimir o compartir. Incluye encabezado y paginación automática.
+          </p>
+        </div>
+        <span class="formato-card__check material-icons" *ngIf="form.get('formato')?.value === 'pdf'">
+          check_circle
+        </span>
+      </label>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- Resumen + acción                                                     -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <section class="config-section config-section--action">
+
+    <!-- Resumen de configuración -->
+    <div class="resumen" *ngIf="configSeleccionada()">
+      <h4 class="resumen__title">
+        <span class="material-icons">summarize</span> Resumen
+      </h4>
+      <div class="resumen__tags">
+        <span class="resumen-tag resumen-tag--tipo">
+          <span class="material-icons">{{ configSeleccionada()!.icon }}</span>
+          {{ configSeleccionada()!.label }}
+        </span>
+        <span class="resumen-tag" *ngIf="form.get('fecha_inicio')?.value && form.get('fecha_fin')?.value">
+          <span class="material-icons">date_range</span>
+          {{ form.get('fecha_inicio')?.value }} → {{ form.get('fecha_fin')?.value }}
+        </span>
+        <span class="resumen-tag" *ngIf="form.get('id_edificio')?.value">
+          <span class="material-icons">business</span>
+          {{ edificioNombreLabel(form.get('id_edificio')?.value) }}
+        </span>
+        <span class="resumen-tag" *ngIf="!form.get('id_edificio')?.value">
+          <span class="material-icons">business</span>
+          Todos los edificios
+        </span>
+        <span class="resumen-tag resumen-tag--formato" [class.resumen-tag--excel]="form.get('formato')?.value === 'excel'" [class.resumen-tag--pdf]="form.get('formato')?.value === 'pdf'">
+          <span class="material-icons">{{ form.get('formato')?.value === 'excel' ? 'table_chart' : 'picture_as_pdf' }}</span>
+          {{ formatoPretty(form.get('formato')?.value) }}
+        </span>
+      </div>
+      <p class="resumen__cols">
+        <strong>Columnas:</strong>
+        {{ configSeleccionada()!.columnas.join(' · ') }}
+      </p>
+    </div>
+
+    <!-- Error -->
+    <div class="gen-error" *ngIf="genError()">
+      <span class="material-icons">error_outline</span>
+      <p>{{ genError() }}</p>
+    </div>
+
+    <!-- Éxito -->
+    <div class="gen-success" *ngIf="lastGenerated()">
+      <span class="material-icons">check_circle</span>
+      <p>
+        <strong>{{ lastGenerated()!.tipo }}</strong> generado como
+        <strong>{{ formatoPretty(lastGenerated()!.formato) }}</strong>
+        con <strong>{{ lastGenerated()!.filas }}</strong> registros.
+        La descarga comenzó automáticamente.
+      </p>
+    </div>
+
+    <!-- Botón principal -->
+    <button
+      class="btn-generate"
+      type="button"
+      [disabled]="generating()"
+      (click)="generar()">
+      <span class="spinner-btn" *ngIf="generating()"></span>
+      <span class="material-icons" *ngIf="!generating()">download</span>
+      <span>{{ generating() ? 'Generando…' : 'Generar y descargar' }}</span>
+    </button>
+
+  </section>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Panel de ayuda                                                          -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<section class="help-panel">
+  <h3 class="help-panel__title">
+    <span class="material-icons">help_outline</span>
+    ¿Qué contiene cada reporte?
+  </h3>
+  <div class="help-grid">
+
+    <div class="help-card">
+      <span class="material-icons help-card__icon">assignment</span>
+      <h4>Registros de aula</h4>
+      <p>
+        Cada fila es un recorrido registrado por un auxiliar: fecha, aula visitada,
+        auxiliar responsable, asistencia del docente y uso de medios A/V.
+      </p>
+    </div>
+
+    <div class="help-card">
+      <span class="material-icons help-card__icon">campaign</span>
+      <h4>Novedades</h4>
+      <p>
+        Novedades reportadas durante los recorridos. Incluye descripción, fecha,
+        auxiliar y aula donde ocurrió la novedad.
+      </p>
+    </div>
+
+    <div class="help-card">
+      <span class="material-icons help-card__icon">support_agent</span>
+      <h4>Solicitudes</h4>
+      <p>
+        Solicitudes generadas con su estado actual, auxiliar que la creó, fecha de
+        resolución y nota de cierre si aplica.
+      </p>
+    </div>
+
+    <div class="help-card">
+      <span class="material-icons help-card__icon">school</span>
+      <h4>Asistencia docente</h4>
+      <p>
+        Resumen por docente: total de registros en el período, número de asistencias
+        e inasistencias y porcentaje final de asistencia.
+      </p>
+    </div>
+
+  </div>
+</section>
