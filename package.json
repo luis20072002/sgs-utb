@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "scripts": {
+  "build": "node replace-env.js && ng build"
+}
+}
