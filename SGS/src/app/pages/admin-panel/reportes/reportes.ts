@@ -161,7 +161,7 @@ export class AdminReportesComponent implements OnInit {
     fecha_inicio:  ['', Validators.required],
     fecha_fin:     ['', Validators.required],
     id_edificio:   [null],
-    formato:       ['excel', Validators.required],
+    formato:       ['excel'],          // fijo: solo Excel
   });
 
   readonly configSeleccionada = computed(() =>
@@ -486,8 +486,8 @@ export class AdminReportesComponent implements OnInit {
     });
   }
 
-  formatoPretty(fmt: string): string {
-    return fmt === 'excel' ? 'Excel (.xlsx)' : 'PDF';
+  formatoPretty(_fmt?: string): string {
+    return 'Excel (.xlsx)';
   }
 
   edificioNombreLabel(id: any): string {
