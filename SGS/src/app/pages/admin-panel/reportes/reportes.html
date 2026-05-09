@@ -95,54 +95,6 @@
   </section>
 
   <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <!-- Paso 3 — Formato de exportación                                     -->
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
-  <section class="config-section">
-    <h3 class="config-section__title">
-      <span class="step-badge">3</span>
-      Formato de exportación
-    </h3>
-
-    <div class="formato-options">
-
-      <label class="formato-card" [class.formato-card--active]="form.get('formato')?.value === 'excel'">
-        <input type="radio" value="excel" formControlName="formato">
-        <div class="formato-card__body">
-          <span class="formato-card__icon formato-card__icon--excel material-icons">table_chart</span>
-          <div>
-            <span class="formato-card__name">Excel</span>
-            <span class="formato-card__ext">.xlsx</span>
-          </div>
-          <p class="formato-card__desc">
-            Hoja de cálculo editable. Ideal para análisis y filtrado adicional de datos.
-          </p>
-        </div>
-        <span class="formato-card__check material-icons" *ngIf="form.get('formato')?.value === 'excel'">
-          check_circle
-        </span>
-      </label>
-
-      <label class="formato-card" [class.formato-card--active]="form.get('formato')?.value === 'pdf'">
-        <input type="radio" value="pdf" formControlName="formato">
-        <div class="formato-card__body">
-          <span class="formato-card__icon formato-card__icon--pdf material-icons">picture_as_pdf</span>
-          <div>
-            <span class="formato-card__name">PDF</span>
-            <span class="formato-card__ext">.pdf</span>
-          </div>
-          <p class="formato-card__desc">
-            Documento listo para imprimir o compartir. Incluye encabezado y paginación automática.
-          </p>
-        </div>
-        <span class="formato-card__check material-icons" *ngIf="form.get('formato')?.value === 'pdf'">
-          check_circle
-        </span>
-      </label>
-
-    </div>
-  </section>
-
-  <!-- ═══════════════════════════════════════════════════════════════════ -->
   <!-- Resumen + acción                                                     -->
   <!-- ═══════════════════════════════════════════════════════════════════ -->
   <section class="config-section config-section--action">
@@ -169,9 +121,9 @@
           <span class="material-icons">business</span>
           Todos los edificios
         </span>
-        <span class="resumen-tag resumen-tag--formato" [class.resumen-tag--excel]="form.get('formato')?.value === 'excel'" [class.resumen-tag--pdf]="form.get('formato')?.value === 'pdf'">
-          <span class="material-icons">{{ form.get('formato')?.value === 'excel' ? 'table_chart' : 'picture_as_pdf' }}</span>
-          {{ formatoPretty(form.get('formato')?.value) }}
+        <span class="resumen-tag resumen-tag--formato resumen-tag--excel">
+          <span class="material-icons">table_chart</span>
+          Excel (.xlsx)
         </span>
       </div>
       <p class="resumen__cols">
