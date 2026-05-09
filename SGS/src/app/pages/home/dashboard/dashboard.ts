@@ -5,6 +5,9 @@ import { RouterLink } from '@angular/router';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../../environments/environment';
+
 import { AuthService } from '../../../services/auth';
 import {
   AuxiliarService,
@@ -38,6 +41,7 @@ export class HomeDashboardComponent implements OnInit {
   // Datos
   planilla   = signal<Planilla | null>(null);
   turno      = signal<Turno | null>(null);
+  edificio   = signal<{ nombre: string; codigo: string } | null>(null);
   aulas      = signal<Aula[]>([]);
   novedades  = signal<Novedad[]>([]);
   solicitudes = signal<Solicitud[]>([]);
@@ -58,6 +62,11 @@ export class HomeDashboardComponent implements OnInit {
     if (h < 19) return 'Buenas tardes';
     return 'Buenas noches';
   });
+  nombreEdificio = computed(() => {
+  const e = this.edificio();
+  if (!e) return '—';
+  return `${e.nombre} (${e.codigo})`;   
+  });
 
   todayLabel = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
@@ -67,7 +76,8 @@ export class HomeDashboardComponent implements OnInit {
 
   constructor(
     private auth: AuthService,
-    private auxiliarService: AuxiliarService
+    private auxiliarService: AuxiliarService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -113,6 +123,8 @@ export class HomeDashboardComponent implements OnInit {
   private loadShiftDetails(planilla: Planilla, idUsuario: number): void {
     forkJoin({
       turno: this.auxiliarService.getTurno(planilla.id_turno).pipe(catchError(() => of(null))),
+      edificio: this.http.get<{ nombre: string; codigo: string }>(`${environment.apiUrl}/edificios/${planilla.id_edificio}`)
+                   .pipe(catchError(() => of(null))),
       aulasP1: this.auxiliarService.getAulasEdificio(planilla.id_edificio, planilla.piso_1)
                    .pipe(catchError(() => of([] as Aula[]))),
       aulasP2: planilla.piso_2
@@ -125,8 +137,9 @@ export class HomeDashboardComponent implements OnInit {
         : of([] as Aula[]),
       novedades:   this.auxiliarService.getMisNovedades().pipe(catchError(() => of([] as Novedad[]))),
       solicitudes: this.auxiliarService.getMisSolicitudes().pipe(catchError(() => of([] as Solicitud[]))),
-    }).subscribe(({ turno, aulasP1, aulasP2, aulasP3, novedades, solicitudes }) => {
+    }).subscribe(({ turno, edificio, aulasP1, aulasP2, aulasP3, novedades, solicitudes }) => {
       this.turno.set(turno);
+      this.edificio.set(edificio);
       this.aulas.set([...aulasP1, ...aulasP2, ...aulasP3]);
       this.novedades.set(novedades);
       this.solicitudes.set(solicitudes);

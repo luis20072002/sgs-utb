@@ -62,6 +62,7 @@ export class HomePlanillaComponent implements OnInit {
 
   planilla = signal<Planilla | null>(null);
   turno    = signal<Turno | null>(null);
+  edificio = signal<{ nombre: string; codigo: string } | null>(null);
 
   /** Aulas que SÍ tienen clase asignada en la planilla */
   aulasConClase    = signal<AulaEnriquecida[]>([]);
@@ -79,6 +80,12 @@ export class HomePlanillaComponent implements OnInit {
     const total = this.aulasConClase().length;
     if (!total) return 0;
     return Math.round((this.aulasCompletadas() / total) * 100);
+  });
+
+  nombreEdificio = computed(() => {
+  const e = this.edificio();
+  if (!e) return '—';
+  return `${e.nombre} (${e.codigo})`;
   });
 
   /* ── Modal ── */
@@ -160,10 +167,13 @@ export class HomePlanillaComponent implements OnInit {
                    .pipe(catchError(() => of([] as HorarioClase[]))),
       docentes:  this.http.get<DocenteMin[]>(`${base}/docentes/`)
                    .pipe(catchError(() => of([] as DocenteMin[]))),
+      edificio: this.http.get<{ id_edificio: number; nombre: string; codigo: string; cantidad_pisos: number; estado: boolean }>(`${base}/edificios/${planilla.id_edificio}`)
+                  .pipe(catchError(() => of(null))),
       cursos:    this.http.get<CursoMin[]>(`${base}/cursos/`)
                    .pipe(catchError(() => of([] as CursoMin[]))),
-    }).subscribe(({ turno, aulasP1, aulasP2, aulasP3, registros, clases, docentes, cursos }) => {
+    }).subscribe(({ turno, aulasP1, aulasP2, aulasP3, registros, clases, docentes, cursos, edificio}) => {
       this.turno.set(turno);
+      this.edificio.set(edificio);
 
       const todasLasAulas = [...aulasP1, ...aulasP2, ...aulasP3];
 
