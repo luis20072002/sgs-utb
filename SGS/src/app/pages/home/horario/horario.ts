@@ -86,6 +86,12 @@ export class HomeHorarioComponent implements OnInit {
       this.isLoading.set(false);
     });
   }
+  private localDateKey(d: Date): string {
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
 
   // ── Construir las 7 celdas del calendario ──
   private buildDays(): DayCell[] {
@@ -96,12 +102,12 @@ export class HomeHorarioComponent implements OnInit {
     monday.setDate(today.getDate() - (dayOfWeek - 1));
     monday.setHours(0, 0, 0, 0);
 
-    const todayKey = today.toISOString().slice(0, 10);
+    const todayKey = this.localDateKey(today);
 
     return DIAS.map((d, idx) => {
       const date = new Date(monday);
       date.setDate(monday.getDate() + idx);
-      const dateKey = date.toISOString().slice(0, 10);
+      const dateKey = this.localDateKey(date);
 
       return {
         num:        d.num,
