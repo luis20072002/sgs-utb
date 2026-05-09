@@ -8,9 +8,11 @@ import {
   SimpleChanges,
   signal,
   computed,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
 
@@ -21,30 +23,25 @@ import {
   RegistroCreatePayload,
   RegistroUpdatePayload,
 } from '../../../../services/registros.service';
+import { environment } from '../../../../../environments/environment';
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Interfaz interna del formulario
-   ────────────────────────────────────────────────────────────────────────── */
-interface RegistroForm {
-  asistencia:    boolean | null;
-  audiovisuales: boolean | null;
-  novedadDesc:   string;
-  solicitudDesc: string;
+interface HorarioClase {
+  id_horario_clase: number;
+  id_planilla:      number;
+  id_aula:          number;
+  id_docente:       number;
+  id_curso:         number;
+  hora_inicio:      string;
+  hora_fin:         string;
+  dia_semana:       number | null;
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Evento que emite el modal al guardar exitosamente
-   ────────────────────────────────────────────────────────────────────────── */
 export interface RegistroGuardadoEvent {
-  aula:     Aula;
-  registro: Registro;
-  /** true si fue una actualización, false si fue creación */
+  aula:            Aula;
+  registro:        Registro;
   esActualizacion: boolean;
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   Componente
-   ────────────────────────────────────────────────────────────────────────── */
 @Component({
   selector: 'app-registro-modal',
   standalone: true,
@@ -54,100 +51,82 @@ export interface RegistroGuardadoEvent {
 })
 export class RegistroModalComponent implements OnChanges {
 
-  /* ── Inputs ─────────────────────────────────────────────────────────── */
+  @Input() open        = false;
+  @Input() aula:        Aula | null = null;
+  @Input() idPlanilla:  number | null = null;
+  @Input() idTurno:     number | null = null;
 
-  /** Controla la visibilidad del overlay */
-  @Input() open = false;
-
-  /** Aula sobre la que se está registrando */
-  @Input() aula: Aula | null = null;
-
-  /** ID de la planilla activa del auxiliar */
-  @Input() idPlanilla: number | null = null;
-
-  /* ── Outputs ────────────────────────────────────────────────────────── */
-
-  /** Emite cuando el registro se guardó correctamente */
-  @Output() guardado = new EventEmitter<RegistroGuardadoEvent>();
-
-  /** Emite cuando el usuario cancela o cierra el modal */
+  @Output() guardado  = new EventEmitter<RegistroGuardadoEvent>();
   @Output() cancelado = new EventEmitter<void>();
 
-  /* ── Estado interno ─────────────────────────────────────────────────── */
+  private registrosService = inject(RegistrosService);
+  private http             = inject(HttpClient);
+  private base             = environment.apiUrl;
 
-  isLoading      = signal(false);   // cargando registro existente
-  isSubmitting   = signal(false);   // guardando
-  errorMsg       = signal('');
+  isLoading    = signal(false);
+  isSubmitting = signal(false);
+  errorMsg     = signal('');
 
   registroExistente = signal<Registro | null>(null);
+  horarioClase      = signal<HorarioClase | null>(null);
 
   showNovedad   = signal(false);
   showSolicitud = signal(false);
 
-  form: RegistroForm = {
-    asistencia:    null,
-    audiovisuales: null,
-    novedadDesc:   '',
-    solicitudDesc: '',
-  };
+  asistencia    = signal<boolean | null>(null);
+  audiovisuales = signal<boolean | null>(null);
 
-  /* ── Computed ───────────────────────────────────────────────────────── */
+  novedadDesc   = '';
+  solicitudDesc = '';
 
-  /**
-   * El formulario es válido cuando tanto asistencia como audiovisuales
-   * tienen un valor (true o false, no null).
-   */
   isFormValid = computed(() =>
-    this.form.asistencia !== null && this.form.audiovisuales !== null
+    this.asistencia() !== null && this.audiovisuales() !== null
   );
-
-  constructor(private registrosService: RegistrosService) {}
-
-  /* ── Lifecycle ──────────────────────────────────────────────────────── */
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['open']) {
-      if (this.open) {
-        this.initModal();
-      } else {
-        this.resetModal();
-      }
+      if (this.open) this.initModal();
+      else           this.resetModal();
     }
   }
 
-  /* ── Inicialización ─────────────────────────────────────────────────── */
-
   private initModal(): void {
     this.resetModal();
-
     if (!this.aula || !this.idPlanilla) return;
 
     this.isLoading.set(true);
 
-    this.registrosService
-      .getRegistroPorAula(this.idPlanilla, this.aula.id_aula)
-      .pipe(catchError(() => of(null)))
-      .subscribe((registro) => {
-        if (registro) {
-          // Hay un registro previo → modo edición
-          this.registroExistente.set(registro);
-          this.form.asistencia    = registro.asistencia_docente;
-          this.form.audiovisuales = registro.uso_audiovisuales;
-          // Novedades y solicitudes existentes no se cargan para edición
-          // (son inmutables una vez creadas; el auxiliar solo puede agregar nuevas)
-        }
-        this.isLoading.set(false);
-      });
+    forkJoin({
+      clases:    this.http.get<HorarioClase[]>(
+                   `${this.base}/horarios-clase/planilla/${this.idPlanilla}`
+                 ).pipe(catchError(() => of([] as HorarioClase[]))),
+      registros: this.registrosService.getMisRegistros()
+                   .pipe(catchError(() => of([] as Registro[]))),
+    }).subscribe(({ clases, registros }) => {
+      const clase = clases.find(c => c.id_aula === this.aula!.id_aula) ?? null;
+      this.horarioClase.set(clase);
+
+      const registroExistente = registros.find(
+        r => r.id_aula === this.aula!.id_aula && r.id_turno === this.idTurno
+      ) ?? null;
+
+      if (registroExistente) {
+        this.registroExistente.set(registroExistente);
+        this.asistencia.set(registroExistente.asistencia_docente);
+        this.audiovisuales.set(registroExistente.uso_medios_audiovisuales);
+      }
+
+      this.isLoading.set(false);
+    });
   }
 
   private resetModal(): void {
-    this.form = {
-      asistencia:    null,
-      audiovisuales: null,
-      novedadDesc:   '',
-      solicitudDesc: '',
-    };
+    this.asistencia.set(null);
+    this.audiovisuales.set(null);
+    this.novedadDesc   = '';
+    this.solicitudDesc = '';
     this.registroExistente.set(null);
+    this.horarioClase.set(null);
     this.showNovedad.set(false);
     this.showSolicitud.set(false);
     this.errorMsg.set('');
@@ -155,127 +134,124 @@ export class RegistroModalComponent implements OnChanges {
     this.isLoading.set(false);
   }
 
-  /* ── Toggles de secciones opcionales ───────────────────────────────── */
+  private fechaHoy(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  private horaAhora(): string {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  }
 
   toggleNovedad(): void {
-    this.showNovedad.update((v) => !v);
-    if (!this.showNovedad()) this.form.novedadDesc = '';
+    this.showNovedad.update(v => !v);
+    if (!this.showNovedad()) this.novedadDesc = '';
   }
 
   toggleSolicitud(): void {
-    this.showSolicitud.update((v) => !v);
-    if (!this.showSolicitud()) this.form.solicitudDesc = '';
+    this.showSolicitud.update(v => !v);
+    if (!this.showSolicitud()) this.solicitudDesc = '';
   }
 
-  /* ── Acciones del modal ─────────────────────────────────────────────── */
-
-  onOverlayClick(): void {
-    if (!this.isSubmitting()) this.onCancel();
-  }
-
-  onCancel(): void {
-    if (this.isSubmitting()) return;
-    this.cancelado.emit();
-  }
+  onOverlayClick(): void { if (!this.isSubmitting()) this.onCancel(); }
+  onCancel(): void       { if (!this.isSubmitting()) this.cancelado.emit(); }
 
   onSubmit(): void {
     if (!this.isFormValid() || this.isSubmitting()) return;
-    if (!this.aula || !this.idPlanilla) return;
+
+    const clase = this.horarioClase();
+    if (!clase) {
+      this.errorMsg.set('Este aula no tiene una clase asignada en la planilla. Contacta al administrador.');
+      return;
+    }
+    if (!this.idTurno) {
+      this.errorMsg.set('Faltan datos del turno. Intenta recargar la página.');
+      return;
+    }
 
     this.isSubmitting.set(true);
     this.errorMsg.set('');
 
     const registro = this.registroExistente();
-
-    if (registro) {
-      this.actualizarRegistro(registro);
-    } else {
-      this.crearRegistro();
-    }
+    if (registro) this.actualizarRegistro(registro, clase);
+    else          this.crearRegistro(clase);
   }
 
-  /* ── Flujo de CREACIÓN ──────────────────────────────────────────────── */
-
-  private crearRegistro(): void {
+  private crearRegistro(clase: HorarioClase): void {
     const payload: RegistroCreatePayload = {
-      id_planilla:        this.idPlanilla!,
-      id_aula:            this.aula!.id_aula,
-      asistencia_docente: this.form.asistencia!,
-      uso_audiovisuales:  this.form.audiovisuales!,
+      id_turno:                 this.idTurno!,
+      id_aula:                  this.aula!.id_aula,
+      id_docente:               clase.id_docente,
+      id_curso:                 clase.id_curso,
+      asistencia_docente:       this.asistencia()!,
+      uso_medios_audiovisuales: this.audiovisuales()!,
+      fecha_registro:           this.fechaHoy(),
+      hora_registro:            this.horaAhora(),
     };
 
-    this.registrosService
-      .crear(payload)
-      .pipe(
-        catchError((err) => {
-          const msg = err?.error?.detail ?? 'No se pudo guardar el registro. Intenta de nuevo.';
-          this.errorMsg.set(msg);
-          this.isSubmitting.set(false);
-          return of(null);
-        }),
-        switchMap((registro) => {
-          if (!registro) return of(null);
-
-          // Crear novedad y/o solicitud en paralelo si corresponde
-          const novedad$ =
-            this.showNovedad() && this.form.novedadDesc.trim()
-              ? this.registrosService
-                  .crearNovedad({ id_registro: registro.id_registro, descripcion: this.form.novedadDesc.trim() })
-                  .pipe(catchError(() => of(null)))
-              : of(null);
-
-          const solicitud$ =
-            this.showSolicitud() && this.form.solicitudDesc.trim()
-              ? this.registrosService
-                  .crearSolicitud({ id_registro: registro.id_registro, descripcion: this.form.solicitudDesc.trim() })
-                  .pipe(catchError(() => of(null)))
-              : of(null);
-
-          return forkJoin({ novedad: novedad$, solicitud: solicitud$ }).pipe(
-            // Aunque fallen las novedades/solicitudes, el registro ya quedó guardado
-            catchError(() => of({ novedad: null, solicitud: null })),
-            // Retornamos el registro para el evento
-            switchMap(() => of(registro))
-          );
-        })
-      )
-      .subscribe((registro) => {
-        if (!registro) return; // ya manejado en catchError
+    this.registrosService.crear(payload).pipe(
+      catchError((err) => {
+        this.errorMsg.set(this.parseError(err, 'No se pudo guardar el registro.'));
         this.isSubmitting.set(false);
-        this.guardado.emit({
-          aula:            this.aula!,
-          registro,
-          esActualizacion: false,
-        });
-      });
+        return of(null);
+      }),
+      switchMap((registro) => {
+        if (!registro) return of(null);
+
+        const novedad$ = this.showNovedad() && this.novedadDesc.trim()
+          ? this.registrosService.crearNovedad({ id_registro: registro.id_registro, descripcion: this.novedadDesc.trim() })
+              .pipe(catchError(() => of(null)))
+          : of(null);
+
+        const solicitud$ = this.showSolicitud() && this.solicitudDesc.trim()
+          ? this.registrosService.crearSolicitud({ id_registro: registro.id_registro, descripcion: this.solicitudDesc.trim() })
+              .pipe(catchError(() => of(null)))
+          : of(null);
+
+        return forkJoin({ novedad: novedad$, solicitud: solicitud$ }).pipe(
+          catchError(() => of(null)),
+          switchMap(() => of(registro))
+        );
+      })
+    ).subscribe((registro) => {
+      if (!registro) return;
+      this.isSubmitting.set(false);
+      this.guardado.emit({ aula: this.aula!, registro, esActualizacion: false });
+    });
   }
 
-  /* ── Flujo de ACTUALIZACIÓN ─────────────────────────────────────────── */
-
-  private actualizarRegistro(registroExistente: Registro): void {
+  private actualizarRegistro(registroExistente: Registro, clase: HorarioClase): void {
     const payload: RegistroUpdatePayload = {
-      asistencia_docente: this.form.asistencia!,
-      uso_audiovisuales:  this.form.audiovisuales!,
+      id_turno:                 registroExistente.id_turno,
+      id_aula:                  registroExistente.id_aula,
+      id_docente:               clase.id_docente,
+      id_curso:                 clase.id_curso,
+      asistencia_docente:       this.asistencia()!,
+      uso_medios_audiovisuales: this.audiovisuales()!,
+      fecha_registro:           registroExistente.fecha_registro,
+      hora_registro:            registroExistente.hora_registro,
     };
 
-    this.registrosService
-      .actualizar(registroExistente.id_registro, payload)
-      .pipe(
-        catchError((err) => {
-          const msg = err?.error?.detail ?? 'No se pudo actualizar el registro. Intenta de nuevo.';
-          this.errorMsg.set(msg);
-          this.isSubmitting.set(false);
-          return of(null);
-        })
-      )
-      .subscribe((registro) => {
-        if (!registro) return;
+    this.registrosService.actualizar(registroExistente.id_registro, payload).pipe(
+      catchError((err) => {
+        this.errorMsg.set(this.parseError(err, 'No se pudo actualizar el registro.'));
         this.isSubmitting.set(false);
-        this.guardado.emit({
-          aula:            this.aula!,
-          registro,
-          esActualizacion: true,
-        });
-      });
+        return of(null);
+      })
+    ).subscribe((registro) => {
+      if (!registro) return;
+      this.isSubmitting.set(false);
+      this.guardado.emit({ aula: this.aula!, registro, esActualizacion: true });
+    });
+  }
+
+  private parseError(err: any, fallback: string): string {
+    const detail = err?.error?.detail;
+    if (!detail) return fallback;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((e: any) => e?.msg ?? JSON.stringify(e)).join(' · ');
+    }
+    return fallback;
   }
 }

@@ -46,7 +46,7 @@
         <div class="rm-toggles">
 
           <!-- Asistencia docente -->
-          <div class="rm-toggle" [class.rm-toggle--yes]="form.asistencia" [class.rm-toggle--no]="!form.asistencia">
+          <div class="rm-toggle" [class.rm-toggle--yes]="asistencia()" [class.rm-toggle--no]="asistencia() === false">
             <div class="rm-toggle__label">
               <span class="material-icons">person</span>
               <div>
@@ -58,16 +58,16 @@
               <button
                 type="button"
                 class="rm-toggle__btn"
-                [class.rm-toggle__btn--active-yes]="form.asistencia === true"
-                (click)="form.asistencia = true">
+                [class.rm-toggle__btn--active-yes]="asistencia() === true"
+                (click)="asistencia.set(true)">
                 <span class="material-icons">check_circle</span>
                 Sí
               </button>
               <button
                 type="button"
                 class="rm-toggle__btn"
-                [class.rm-toggle__btn--active-no]="form.asistencia === false"
-                (click)="form.asistencia = false">
+                [class.rm-toggle__btn--active-no]="asistencia() === false"
+                (click)="asistencia.set(false)">
                 <span class="material-icons">cancel</span>
                 No
               </button>
@@ -75,7 +75,7 @@
           </div>
 
           <!-- Uso de audiovisuales -->
-          <div class="rm-toggle" [class.rm-toggle--yes]="form.audiovisuales" [class.rm-toggle--no]="!form.audiovisuales">
+          <div class="rm-toggle" [class.rm-toggle--yes]="audiovisuales()" [class.rm-toggle--no]="audiovisuales() === false">
             <div class="rm-toggle__label">
               <span class="material-icons">videocam</span>
               <div>
@@ -87,16 +87,16 @@
               <button
                 type="button"
                 class="rm-toggle__btn"
-                [class.rm-toggle__btn--active-yes]="form.audiovisuales === true"
-                (click)="form.audiovisuales = true">
+                [class.rm-toggle__btn--active-yes]="audiovisuales() === true"
+                (click)="audiovisuales.set(true)">
                 <span class="material-icons">check_circle</span>
                 Sí
               </button>
               <button
                 type="button"
                 class="rm-toggle__btn"
-                [class.rm-toggle__btn--active-no]="form.audiovisuales === false"
-                (click)="form.audiovisuales = false">
+                [class.rm-toggle__btn--active-no]="audiovisuales() === false"
+                (click)="audiovisuales.set(false)">
                 <span class="material-icons">cancel</span>
                 No
               </button>
@@ -129,7 +129,7 @@
             class="rm-textarea"
             rows="3"
             placeholder="Describe la novedad observada en el aula (ej: puerta dañada, ventana rota, mal olor)…"
-            [(ngModel)]="form.novedadDesc"
+            [(ngModel)]="novedadDesc"
             [disabled]="isSubmitting()">
           </textarea>
           <span class="rm-textarea__hint">
@@ -162,7 +162,7 @@
             class="rm-textarea"
             rows="3"
             placeholder="Describe el problema que requiere atención (ej: proyector sin imagen, aire acondicionado no funciona)…"
-            [(ngModel)]="form.solicitudDesc"
+            [(ngModel)]="solicitudDesc"
             [disabled]="isSubmitting()">
           </textarea>
           <span class="rm-textarea__hint rm-textarea__hint--warn">

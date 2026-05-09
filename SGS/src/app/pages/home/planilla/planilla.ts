@@ -13,6 +13,7 @@ import {
 } from '../../../services/auxiliar.service';
 import { RegistrosService, Registro } from '../../../services/registros.service';
 import { RegistroModalComponent, RegistroGuardadoEvent } from './registro-modal/registro-modal';
+import { switchMap } from 'rxjs/operators';
 
 @Component({
   selector: 'app-home-planilla',
@@ -66,13 +67,33 @@ export class HomePlanillaComponent implements OnInit {
   /* ── Carga principal ─────────────────────────────────────────────── */
 
   private load(idUsuario: number): void {
+    // Intentamos primero la planilla activa según el turno actual.
+    // Si el backend devuelve error (fuera de turno) hacemos fallback
+    // a la última planilla activa asignada al usuario, para que el
+    // auxiliar siempre pueda ver su planilla aunque no sea su horario.
     this.auxiliarService
       .getPlanillaActiva(idUsuario)
-      .pipe(catchError(() => of(null)))
+      .pipe(
+        catchError(() =>
+          // Fallback: buscar entre todas las planillas del usuario
+          // la más reciente con estado 'activa'
+          this.auxiliarService.getPlanillasUsuario(idUsuario).pipe(
+            catchError(() => of([] as Planilla[])),
+            switchMap((planillas) => {
+              const activa = planillas
+                .filter((p) => p.estado === 'activa')
+                .sort((a, b) =>
+                  b.fecha_asignacion.localeCompare(a.fecha_asignacion)
+                )[0] ?? null;
+              return of(activa);
+            })
+          )
+        )
+      )
       .subscribe({
         next: (planilla) => {
           if (!planilla) {
-            this.errorMsg.set('No tienes una planilla activa en este momento.');
+            this.errorMsg.set('No tienes una planilla activa asignada.');
             this.isLoading.set(false);
             return;
           }
@@ -114,7 +135,7 @@ export class HomePlanillaComponent implements OnInit {
       this.aulas.set(todasLasAulas);
 
       // Construir el mapa de registros filtrando por la planilla activa
-      this.buildRegistrosMap(planilla.id_planillas, todasLasAulas, registros);
+      this.buildRegistrosMap(todasLasAulas, registros);
 
       this.isLoading.set(false);
     });
@@ -125,7 +146,6 @@ export class HomePlanillaComponent implements OnInit {
    * que pertenecen a la planilla activa actual.
    */
   private buildRegistrosMap(
-    idPlanilla: number,
     aulas: Aula[],
     registros: Registro[]
   ): void {
@@ -133,7 +153,7 @@ export class HomePlanillaComponent implements OnInit {
     const map = new Map<number, Registro>();
 
     registros
-      .filter((r) => r.id_planilla === idPlanilla && idsAula.has(r.id_aula))
+      .filter((r) => idsAula.has(r.id_aula))
       .forEach((r) => map.set(r.id_aula, r));
 
     this.registrosMap.set(map);

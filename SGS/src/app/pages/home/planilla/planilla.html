@@ -109,9 +109,9 @@
               <span class="material-icons">person</span>
               Docente: {{ reg.asistencia_docente ? 'Presente' : 'Ausente' }}
             </span>
-            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.uso_audiovisuales" [class.aula-card__summary-item--no]="!reg.uso_audiovisuales">
+            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.uso_medios_audiovisuales" [class.aula-card__summary-item--no]="!reg.uso_medios_audiovisuales">
               <span class="material-icons">videocam</span>
-              A/V: {{ reg.uso_audiovisuales ? 'Sí' : 'No' }}
+              A/V: {{ reg.uso_medios_audiovisuales ? 'Sí' : 'No' }}
             </span>
           </div>
 
@@ -140,6 +140,7 @@
   [open]="modalOpen()"
   [aula]="aulaSeleccionada()"
   [idPlanilla]="planilla()?.id_planillas ?? null"
+  [idTurno]="planilla()?.id_turno ?? null"
   (guardado)="onRegistroGuardado($event)"
   (cancelado)="onModalCancelado()">
 </app-registro-modal>
