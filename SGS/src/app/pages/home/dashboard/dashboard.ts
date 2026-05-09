@@ -65,9 +65,9 @@ export class HomeDashboardComponent implements OnInit {
   nombreEdificio = computed(() => {
   const e = this.edificio();
   if (!e) return '—';
-  return `${e.nombre} (${e.codigo})`;   
+  return `${e.nombre} (${e.codigo})`;
   });
-
+  
   todayLabel = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',
