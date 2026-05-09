@@ -7,30 +7,38 @@ import { environment } from '../../environments/environment';
 // ─── Modelos ──────────────────────────────────────────────────────────────────
 
 export interface Registro {
-  id_registro:          number;
-  id_planilla:          number;
-  id_aula:              number;
-  id_docente?:          number | null;
-  id_curso?:            number | null;
-  asistencia_docente:   boolean;
-  uso_audiovisuales:    boolean;
-  fecha_registro:       string;   // ISO datetime
-  hora_registro:        string;   // 'HH:mm:ss'
-  id_turno:             number;
+  id_registro:              number;
+  id_turno:                 number;
+  id_aula:                  number;
+  id_docente:               number;
+  id_curso:                 number;
+  id_usuario:               number;
+  asistencia_docente:       boolean;
+  uso_medios_audiovisuales: boolean;
+  fecha_registro:           string;   // 'YYYY-MM-DD'
+  hora_registro:            string;   // 'HH:mm:ss'
 }
 
 export interface RegistroCreatePayload {
-  id_planilla:          number;
-  id_aula:              number;
-  id_docente?:          number | null;
-  id_curso?:            number | null;
-  asistencia_docente:   boolean;
-  uso_audiovisuales:    boolean;
+  id_turno:                 number;
+  id_aula:                  number;
+  id_docente:               number;
+  id_curso:                 number;
+  asistencia_docente:       boolean;
+  uso_medios_audiovisuales: boolean;
+  fecha_registro:           string;   // 'YYYY-MM-DD'
+  hora_registro:            string;   // 'HH:mm:ss'
 }
 
 export interface RegistroUpdatePayload {
-  asistencia_docente?:  boolean;
-  uso_audiovisuales?:   boolean;
+  id_turno:                 number;
+  id_aula:                  number;
+  id_docente:               number;
+  id_curso:                 number;
+  asistencia_docente:       boolean;
+  uso_medios_audiovisuales: boolean;
+  fecha_registro:           string;
+  hora_registro:            string;
 }
 
 export interface NovedadCreatePayload {
