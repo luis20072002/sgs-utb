@@ -62,7 +62,7 @@
       <div class="progress">
         <div class="progress__head">
           <span class="progress__label">Progreso de recorrido</span>
-          <span class="progress__count">{{ aulasCompletadas() }} de {{ aulas().length }} aulas</span>
+          <span class="progress__count">{{ aulasCompletadas() }} de {{ aulasConClase().length }} aulas</span>
         </div>
         <div class="progress__bar">
           <div class="progress__fill" [style.width.%]="progreso()"></div>
@@ -70,18 +70,22 @@
       </div>
     </section>
 
-    <!-- Lista de aulas -->
+    <!-- ═══ AULAS CON CLASE ═══ -->
     <section class="aulas">
-      <h3 class="section-title">Aulas del recorrido</h3>
+      <h3 class="section-title">
+        <span class="material-icons">class</span>
+        Aulas con clase hoy
+        <span class="section-badge">{{ aulasConClase().length }}</span>
+      </h3>
 
-      <div class="empty-list" *ngIf="aulas().length === 0">
-        <span class="material-icons">meeting_room</span>
-        <p>No hay aulas registradas en los pisos asignados.</p>
+      <div class="empty-list" *ngIf="aulasConClase().length === 0">
+        <span class="material-icons">event_available</span>
+        <p>No hay clases programadas en tus pisos para hoy.</p>
       </div>
 
-      <div class="aula-list" *ngIf="aulas().length > 0">
+      <div class="aula-list" *ngIf="aulasConClase().length > 0">
         <article
-          *ngFor="let aula of aulas()"
+          *ngFor="let aula of aulasConClase()"
           class="aula-card"
           [class.aula-card--done]="!!getRegistro(aula)">
 
@@ -96,26 +100,56 @@
                 <span><span class="material-icons">groups</span> {{ aula.capacidad }} cap.</span>
               </p>
             </div>
-            <!-- Badge de estado -->
             <span class="aula-card__status aula-card__status--done" *ngIf="getRegistro(aula)">
               <span class="material-icons">task_alt</span>
               Registrada
             </span>
           </div>
 
+          <!-- Info de la clase -->
+          <div class="clase-info" *ngIf="aula.clase">
+            <div class="clase-info__row">
+              <div class="clase-info__item">
+                <span class="material-icons">person_outline</span>
+                <div>
+                  <span class="clase-info__label">Docente</span>
+                  <span class="clase-info__value">{{ nombreDocente(aula) }}</span>
+                </div>
+              </div>
+              <div class="clase-info__item">
+                <span class="material-icons">menu_book</span>
+                <div>
+                  <span class="clase-info__label">Materia</span>
+                  <span class="clase-info__value">
+                    {{ aula.curso?.nombre_curso ?? '—' }}
+                    <small *ngIf="aula.curso?.codi_curso">· {{ aula.curso?.codi_curso }}</small>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="clase-info__horario">
+              <span class="material-icons">access_time</span>
+              {{ formatHora(aula.clase.hora_inicio) }} – {{ formatHora(aula.clase.hora_fin) }}
+            </div>
+          </div>
+
           <!-- Resumen del registro existente -->
           <div class="aula-card__summary" *ngIf="getRegistro(aula) as reg">
-            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.asistencia_docente" [class.aula-card__summary-item--no]="!reg.asistencia_docente">
+            <span class="aula-card__summary-item"
+              [class.aula-card__summary-item--yes]="reg.asistencia_docente"
+              [class.aula-card__summary-item--no]="!reg.asistencia_docente">
               <span class="material-icons">person</span>
               Docente: {{ reg.asistencia_docente ? 'Presente' : 'Ausente' }}
             </span>
-            <span class="aula-card__summary-item" [class.aula-card__summary-item--yes]="reg.uso_medios_audiovisuales" [class.aula-card__summary-item--no]="!reg.uso_medios_audiovisuales">
+            <span class="aula-card__summary-item"
+              [class.aula-card__summary-item--yes]="reg.uso_medios_audiovisuales"
+              [class.aula-card__summary-item--no]="!reg.uso_medios_audiovisuales">
               <span class="material-icons">videocam</span>
               A/V: {{ reg.uso_medios_audiovisuales ? 'Sí' : 'No' }}
             </span>
           </div>
 
-          <!-- Hint cuando no hay registro -->
+          <!-- Hint sin registro -->
           <p class="aula-card__hint" *ngIf="!getRegistro(aula)">
             <span class="material-icons">info</span>
             Aún no has registrado esta aula en este turno.
@@ -128,6 +162,47 @@
             <span class="material-icons">{{ getRegistro(aula) ? 'edit' : 'edit_note' }}</span>
             {{ getRegistro(aula) ? 'Editar registro' : 'Registrar aula' }}
           </button>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═══ AULAS SIN CLASE (colapsable) ═══ -->
+    <section class="aulas aulas--secondary" *ngIf="aulasSinClase().length > 0">
+      <button class="section-toggle" (click)="mostrarSinClase.set(!mostrarSinClase())">
+        <span class="material-icons">meeting_room</span>
+        Aulas sin clase hoy
+        <span class="section-badge section-badge--muted">{{ aulasSinClase().length }}</span>
+        <span class="material-icons section-toggle__chevron" [class.section-toggle__chevron--open]="mostrarSinClase()">
+          expand_more
+        </span>
+      </button>
+
+      <div class="aula-list aula-list--secondary" *ngIf="mostrarSinClase()">
+        <article
+          *ngFor="let aula of aulasSinClase()"
+          class="aula-card aula-card--empty">
+
+          <div class="aula-card__head">
+            <div class="aula-card__icon aula-card__icon--empty">
+              <span class="material-icons">meeting_room</span>
+            </div>
+            <div class="aula-card__info">
+              <h4 class="aula-card__title">{{ aula.codigo }}</h4>
+              <p class="aula-card__meta">
+                <span><span class="material-icons">stairs</span> Piso {{ aula.piso }}</span>
+                <span><span class="material-icons">groups</span> {{ aula.capacidad }} cap.</span>
+              </p>
+            </div>
+            <span class="aula-card__status aula-card__status--empty">
+              <span class="material-icons">remove_circle_outline</span>
+              Sin clase
+            </span>
+          </div>
+
+          <p class="aula-card__hint">
+            <span class="material-icons">info</span>
+            No hay ninguna clase asignada a este aula en la planilla de hoy.
+          </p>
         </article>
       </div>
     </section>
