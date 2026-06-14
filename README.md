@@ -265,5 +265,3 @@ Capstone project developed collaboratively during **Programación Intermedia**.
 
 - **Live app:** [sgs-utb.vercel.app](https://sgs-utb.vercel.app/login)
 - **Frontend repo:** [github.com/luis20072002/sgs-utb](https://github.com/luis20072002/sgs-utb)
-- **API (Render):** [bootcamp-backend-qcxk.onrender.com](https://bootcamp-backend-qcxk.onrender.com)
-- **Swagger docs:** [bootcamp-backend-qcxk.onrender.com/docs](https://bootcamp-backend-qcxk.onrender.com/docs)
