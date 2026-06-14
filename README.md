@@ -10,7 +10,7 @@ SGS is a full-stack web platform for managing auxiliary staff walkthroughs acros
 |---|---|
 | **Frontend** | [github.com/luis20072002/sgs-utb](https://github.com/luis20072002/sgs-utb) (this repo) |
 | **Backend** | [github.com/luis20072002/bootcamp-backend](https://github.com/luis20072002/bootcamp-backend) (private) |
-| **API docs** | [bootcamp-backend-qcxk.onrender.com/docs](https://bootcamp-backend-qcxk.onrender.com/docs) |
+
 
 ---
 
